@@ -1,0 +1,34 @@
+------- Q1A
+
+-- Average score per area (whole period and open establishments only)
+
+"area_name","average_score"
+"Staten Island","16.84"
+"Manhattan","17.31"
+"Bronx","17.87"
+"Brooklyn","18.10"
+"Queens","19.29"
+
+
+------- Q1B
+
+-- Establishments counts per area (open establishments only)
+
+"area_name","total_establishments_area"
+"Staten Island","720"
+"Bronx","1681"
+"Queens","4305"
+"Brooklyn","4977"
+"Manhattan","7223"
+
+-- Average inspections counts per area (whole period and open establishments only)
+
+"area_name","total_inspections"
+"Manhattan","11502"
+"Brooklyn","8132"
+"Queens","7115"
+"Bronx","2719"
+"Staten Island","1179"
+
+
+

@@ -1,4 +1,45 @@
--- Distribution of the number of establishments by area
+----------------------------------------------
+-- Q1A
+----------------------------------------------
+
+-- Average scores per area
+
+WITH inspection_level AS ( 
+    SELECT
+        iet.establishment_key,
+        iet.date_key,
+        iet.area_key,
+        MAX(iet.score_assigned) AS inspection_score
+    FROM
+        inspection_events_table AS iet
+    JOIN
+        inspection_dim AS id
+            ON id.inspection_key = iet.inspection_key
+    WHERE
+        id.action_taken NOT LIKE '%Closed%'
+    GROUP BY
+        iet.establishment_key,
+        iet.date_key,
+        iet.area_key
+)
+SELECT
+    ad.area_name,
+    ROUND(AVG(il.inspection_score), 2) AS average_score
+FROM
+    inspection_level AS il
+JOIN
+    area_dim AS ad
+        ON ad.area_key = il.area_key
+GROUP BY
+    ad.area_name
+ORDER BY
+    average_score ASC;
+
+----------------------------------------------
+-- Q1B
+----------------------------------------------
+
+-- Establishments counts per area
 SELECT
     ad.area_name,
     COUNT(DISTINCT ed.establishment_key) AS total_establishments_area -- counts each establishment only once
@@ -8,64 +49,43 @@ JOIN
     inspection_events_table AS iet ON iet.establishment_key = ed.establishment_key
 JOIN
     area_dim AS ad ON ad.area_key = iet.area_key
+JOIN
+    inspection_dim AS id ON id.inspection_key = iet.inspection_key
+WHERE
+    id.action_taken NOT LIKE '%Closed%'
 GROUP BY
     ad.area_name
 ORDER BY
     total_establishments_area;
 
--- Distribution of the total number of inspections performed per area between 2015 and 2025
-SELECT
-    ad.area_name AS area_name,
-    COUNT(event_key) AS total_events
-FROM
-    inspection_events_table AS iet
-LEFT JOIN
-    area_dim AS ad ON ad.area_key = iet.area_key
-GROUP BY
-    area_name
-ORDER BY
-    total_events DESC;
-
--- Distribution of the average number of annual inspections per area
-
-WITH area_inspection_year_count AS (
+-- Inspections counts per area (whole period)
+WITH inspection_level AS (
     SELECT
-        ad.area_name AS area_name,
-        dd.inspection_year AS inspection_year,
-        COUNT(iet.event_key) AS total_count_year
+        iet.establishment_key,
+        iet.area_key,
+        iet.date_key
     FROM
         inspection_events_table AS iet
     JOIN
-        area_dim AS ad ON iet.area_key = ad.area_key
-    JOIN    
-        date_dim AS dd ON iet.date_key = dd.date_key
+        inspection_dim AS id
+            ON id.inspection_key = iet.inspection_key
+    WHERE
+        id.action_taken NOT LIKE '%Closed%'
     GROUP BY
-        area_name,
-        inspection_year
-    ORDER BY
-        area_name,
-        inspection_year
-),
-step2 AS (
-    SELECT
-        area_name,
-        inspection_year,
-        AVG(total_count_year) AS avg_year
-    FROM
-        area_inspection_year_count
-    GROUP BY
-        area_name,
-        inspection_year
+        iet.establishment_key,
+        iet.area_key,
+        iet.date_key
 )
-
 SELECT
-    area_name,
-    ROUND(AVG(avg_year), 0) AS avg_area
+    ad.area_name,
+    COUNT(*) AS total_inspections
 FROM
-    step2
+    inspection_level AS il
+JOIN
+    area_dim AS ad
+        ON ad.area_key = il.area_key
 GROUP BY
-    area_name
+    ad.area_name
 ORDER BY
-    avg_area DESC;
+    total_inspections DESC;
 
--- the result is the same
