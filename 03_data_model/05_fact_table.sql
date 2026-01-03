@@ -219,3 +219,8 @@ SELECT
 FROM daily_restaurant
 GROUP BY n_inspections_same_day
 ORDER BY n_inspections_same_day;
+
+
+SELECT*
+FROM
+inspection_events_table
