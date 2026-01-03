@@ -1,7 +1,4 @@
--- QUERY 2: CLOSURE REASONS BY AREA
--- Objective: quantify the number of events indicating high risk
--- (critical violations or closure-related descriptions),
--- aggregated by area, to map health risk.
+-- Q2 Critical events count (critical violations or closure-related descriptions)
 
 SELECT
     ad.area_name AS area,
