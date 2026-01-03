@@ -162,6 +162,4 @@ ORDER BY
 "Staten Island",2023,"298"
 "Staten Island",2024,"353"
 "Staten Island",2025,"300"
-
-
 */
