@@ -5,127 +5,108 @@ import matplotlib.pyplot as plt
 #   COMMON CONFIGURATIONS
 ##############################################
 
-# Colors by area
 colors = {
-    "Manhattan": "#1f77b4",      # 🔵
-    "Brooklyn": "#ff7f0e",       # 🟠
-    "Queens": "#2ca02c",         # 🟢
-    "Bronx": "#d62728",          # 🔴
-    "Staten Island": "#9467bd"   # 🟣
+    "Manhattan": "#1f77b4",
+    "Brooklyn": "#ff7f0e",
+    "Queens": "#2ca02c",
+    "Bronx": "#d62728",
+    "Staten Island": "#9467bd"
 }
 
-# Total number of establishments per area
 establishments = {
-    "Manhattan": 7260,
-    "Brooklyn": 5003,
-    "Queens": 4313,
-    "Bronx": 1684,
-    "Staten Island": 721
+    "Staten Island": 720,
+    "Bronx": 1681,
+    "Queens": 4305,
+    "Brooklyn": 4977,
+    "Manhattan": 7223
 }
 
-plt.style.use('dark_background')
+plt.style.use("dark_background")
 
+##############################################
+#   CHART 3B — NORMALIZED + 3Y MOVING AVERAGE
+##############################################
 
-#######################################################
-#   CHART 3A — SCORE TREND BY YEAR AND AREA
-#######################################################
+df = pd.read_csv(r"2_QUERIES\Q3\inspection_count_history.csv")
 
-df_a = pd.read_csv(r"2_QUERIES\Q3\score_history.csv")
+df["inspection_year"] = df["inspection_year"].astype(int)
+df["inspection_count"] = df["inspection_count"].astype(int)
 
-# Remove rows without area_name
-df_a = df_a.dropna(subset=['area_name'])
+# Normalize
+df["per_establishment"] = (
+    df["inspection_count"] /
+    df["area_name"].map(establishments)
+)
 
-plt.figure(figsize=(12, 6))
-for area in df_a["area_name"].unique():
-    subset = df_a[df_a["area_name"] == area]
-    plt.plot(
-        subset["inspection_year"],
-        subset["avg_score"],
-        color=colors[area],
-        linewidth=2,
-        marker='o',
-        markersize=4,
-        label=area
-    )
+# Sort correctly
+df = df.sort_values(["area_name", "inspection_year"])
 
-plt.xticks(sorted(df_a["inspection_year"].unique()), fontsize=12)
-plt.yticks(fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.5, color='gray')
-plt.legend(title="Area", fontsize=12, title_fontsize=14)
-plt.xlabel("")
-plt.ylabel("")
-plt.tight_layout()
-plt.show()
-
-
-#######################################################
-#   CHART 3B — INSPECTIONS NORMALIZED PER ESTABLISHMENT
-#######################################################
-
-df_b = pd.read_csv(r"2_QUERIES\Q3\inspection_count_history.csv")
-
-# Normalization per establishment
-df_b["per_establishment"] = df_b.apply(
-    lambda row: row["inspection_count"] / establishments[row["area_name"]],
-    axis=1
+# 3-year moving average (per area)
+df["per_est_ma_3y"] = (
+    df.groupby("area_name")["per_establishment"]
+      .rolling(window=3, min_periods=1)
+      .mean()
+      .reset_index(level=0, drop=True)
 )
 
 plt.figure(figsize=(12, 6))
-for area in df_b["area_name"].unique():
-    subset = df_b[df_b["area_name"] == area]
+
+for area in df["area_name"].unique():
+    subset = df[df["area_name"] == area]
+
     plt.plot(
         subset["inspection_year"],
-        subset["per_establishment"],
+        subset["per_est_ma_3y"],
         color=colors[area],
         linewidth=2,
-        marker='o',
+        marker="o",
         markersize=4,
         label=area
     )
 
-plt.xticks(sorted(df_b["inspection_year"].unique()), fontsize=12)
+plt.xticks(
+    sorted(df["inspection_year"].unique()),
+    fontsize=12
+)
 plt.yticks(fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.5, color='gray')
+
+plt.grid(axis="y", linestyle="--", alpha=0.5, color="gray")
 plt.legend(title="Area", fontsize=12, title_fontsize=14)
 plt.xlabel("")
-plt.ylabel("")
+plt.ylabel("Inspections per establishment (3Y MA)")
 plt.tight_layout()
 plt.show()
 
+##############################################
+#   CHART 3C — UP TO 2021 (3Y MA)
+##############################################
 
-#######################################################
-#   CHART 3C — INSPECTIONS NORMALIZED PER ESTABLISHMENT UP TO 2021
-#######################################################
-
-df_c = pd.read_csv(r"2_QUERIES\Q3\inspection_count_history.csv")
-
-# Filter data up to 2021
-df_c = df_c[df_c["inspection_year"] <= 2021]
-
-# Normalization per establishment
-df_c["per_establishment"] = df_c.apply(
-    lambda row: row["inspection_count"] / establishments[row["area_name"]],
-    axis=1
-)
+df_2021 = df[df["inspection_year"] <= 2021]
 
 plt.figure(figsize=(12, 6))
-for area in df_c["area_name"].unique():
-    subset = df_c[df_c["area_name"] == area]
+
+for area in df_2021["area_name"].unique():
+    subset = df_2021[df_2021["area_name"] == area]
+
     plt.plot(
         subset["inspection_year"],
-        subset["per_establishment"],
+        subset["per_est_ma_3y"],
         color=colors[area],
         linewidth=2,
-        marker='o',
+        marker="o",
         markersize=4,
         label=area
     )
 
-plt.xticks(sorted(df_c["inspection_year"].unique()), fontsize=12)
+plt.xticks(
+    sorted(df_2021["inspection_year"].unique()),
+    fontsize=12
+)
 plt.yticks(fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.5, color='gray')
+
+plt.grid(axis="y", linestyle="--", alpha=0.5, color="gray")
 plt.legend(title="Area", fontsize=12, title_fontsize=14)
 plt.xlabel("")
-plt.ylabel("")
+plt.ylabel("Inspections per establishment (3Y MA)")
 plt.tight_layout()
 plt.show()
