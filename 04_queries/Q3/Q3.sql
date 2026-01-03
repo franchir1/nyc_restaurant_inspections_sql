@@ -15,15 +15,18 @@ GROUP BY
 ) 
 SELECT
     ad.area_name,
+    dd.inspection_year,
     ROUND(AVG(il.score), 2) AS avg_score
 FROM
     inspection_level AS il
 JOIN
     area_dim AS ad ON ad.area_key = il.area_key
+JOIN
+    date_dim AS dd ON dd.date_key = il.date_key
 GROUP BY
-    ad.area_name
+    ad.area_name, dd.inspection_year
 ORDER BY
-    avg_score ASC
+    ad.area_name, dd.inspection_year ASC
 
 /*
 
