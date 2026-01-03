@@ -63,46 +63,50 @@ df = df.sort_values(["area_name", "inspection_year"])
 
 df["per_est_ma_3y"] = (
     df.groupby("area_name")["per_est"]
-      .rolling(3, min_periods=1)
+      .rolling(window=3, min_periods=1)
       .mean()
       .reset_index(level=0, drop=True)
 )
 
 ##############################################
-# MATRIX
+# MATRIX (NUMERIC)
 ##############################################
 
-matrix = (
-    df.pivot(
-        index="area_name",
-        columns="inspection_year",
-        values="per_est_ma_3y"
-    )
-    .round(4)
+matrix = df.pivot(
+    index="area_name",
+    columns="inspection_year",
+    values="per_est_ma_3y"
+)
+
+vmin = matrix.min().min()
+vmax = matrix.max().max()
+
+##############################################
+# FORMATTING (STRINGS, AFTER CALCULATIONS)
+##############################################
+
+matrix_fmt = matrix.applymap(
+    lambda x: f"{x:.4f}" if pd.notna(x) else ""
 )
 
 ##############################################
 # SOFT MONOCHROME COLOR SCALE
 ##############################################
 
-vmin = matrix.min().min()
-vmax = matrix.max().max()
-
 def cell_html(val):
-    if pd.isna(val):
+    if val == "":
         return "<td></td>"
 
-    norm = (val - vmin) / (vmax - vmin)
+    num = float(val)
+    norm = (num - vmin) / (vmax - vmin)
 
-    base = 45        # grigio di partenza
-    max_red = 150    # rosso massimo (tenue)
+    base = 45
+    max_red = 150
 
     red = int(base + (max_red - base) * norm)
-    green = base
-    blue = base
 
     return (
-        f'<td style="background-color: rgb({red},{green},{blue});'
+        f'<td style="background-color: rgb({red},{base},{base});'
         f' color:white; text-align:right; padding:6px;">{val}</td>'
     )
 
@@ -116,24 +120,34 @@ html = """
 <meta charset="utf-8">
 <title>Inspection Intensity Matrix</title>
 <style>
-  body { background-color: #111; color: white; font-family: Arial, sans-serif; }
-  table { border-collapse: collapse; margin-top: 20px; }
-  th { background-color: #222; padding: 6px; }
+  body {
+    background-color: #111;
+    color: white;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  table {
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th {
+    background-color: #222;
+    padding: 6px;
+  }
 </style>
 </head>
 <body>
-<h3>Inspections per Establishment (3Y Moving Average)</h3>
+<h3>Inspections per Establishment (3-Year Moving Average)</h3>
 <table border="1">
 """
 
 # Header
 html += "<tr><th>Area</th>"
-for year in matrix.columns:
+for year in matrix_fmt.columns:
     html += f"<th>{year}</th>"
 html += "</tr>"
 
 # Rows
-for area, row in matrix.iterrows():
+for area, row in matrix_fmt.iterrows():
     html += f"<tr><th>{area}</th>"
     for val in row:
         html += cell_html(val)
@@ -149,7 +163,7 @@ html += """
 # EXPORT
 ##############################################
 
-with open("inspection_matrix_monochrome.html", "w", encoding="utf-8") as f:
+with open("Q3A.html", "w", encoding="utf-8") as f:
     f.write(html)
 
 print("OK — file generato: inspection_matrix_monochrome.html")
