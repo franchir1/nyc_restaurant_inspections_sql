@@ -379,3 +379,15 @@ Se vuoi, nel prossimo passo possiamo:
 
 * trasformare questo testo in **README finale**
 * oppure preparare una **risposta “da colloquio” in 60 secondi** basata su queste note
+
+
+                date_dim
+                   |
+                   |
+area_dim —— fact_inspection —— establishment_dim
+                   |
+                   |
+        fact_inspection_violation
+                   |
+                   |
+             violation_dim
