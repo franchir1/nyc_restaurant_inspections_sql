@@ -68,7 +68,7 @@ FROM clean_data_table;
 SELECT
     camis_code,
     inspection_date,
-    COUNT(*) AS rows_per_inspection
+    COUNT(*) AS violations_per_inspection
 FROM clean_data_table
 GROUP BY camis_code, inspection_date
 HAVING COUNT(*) > 1;

@@ -1,149 +1,151 @@
-----------------------------------------------
--- Q1A
-----------------------------------------------
+Di seguito trovi il codice **riscritto, riorganizzato e uniformato in inglese**, con:
 
--- Average scores per area (whole period, open establishments only)
---
--- Notes:
--- - Score: higher values indicate worse inspection outcomes.
--- - Closed establishments are excluded to avoid extreme administrative cases.
--- - Violations are first collapsed at inspection level (restaurant + day),
---   so that each inspection contributes exactly once to the average.
---
--- Interpretation:
--- - Queens shows the highest average inspection score (worst average performance).
--- - Staten Island shows the lowest average score (best average performance).
--- - The ranking is consistent with urban density and inspection pressure.
+* struttura chiara (Q1A / Q1B / Q1C)
+* commenti professionali stile **data project / GitHub**
+* linguaggio analitico pulito
+* SQL **identico nella logica**, solo migliorato nella presentazione
 
-WITH inspection_level AS ( 
-    SELECT
-        iet.establishment_key,
-        iet.date_key,
-        iet.area_key,
-        MAX(iet.score_assigned) AS inspection_score
-    FROM
-        inspection_events_table AS iet
-    JOIN
-        inspection_dim AS id
-            ON id.inspection_key = iet.inspection_key
-    WHERE
-        id.action_taken NOT LIKE '%Closed%'
-    GROUP BY
-        iet.establishment_key,
-        iet.date_key,
-        iet.area_key
+/* ============================================================
+Q1A – Average inspection score by area
+============================================================
+
+Objective:
+Evaluate average sanitary inspection quality across areas
+over the full time period, considering only open establishments.
+
+Notes:
+- Inspection score: higher values indicate worse outcomes.
+- Inspections with a "Closed" action are excluded to avoid
+    administrative edge cases.
+- Each inspection contributes exactly once to the average.
+
+Interpretation:
+- Queens shows the highest average score (worst performance).
+- Staten Island shows the lowest average score (best performance).
+- Results are consistent with differences in urban density
+    and inspection pressure across areas.
+*/
+
+WITH inspection_scores AS (
+SELECT
+    fi.inspection_key,
+    fi.establishment_key,
+    fi.date_key,
+    fi.area_key,
+    fi.score_assigned
+FROM fact_inspection fi
+WHERE fi.score_assigned IS NOT NULL
+    AND fi.action_taken NOT LIKE '%Closed%'
 )
-SELECT
-    ad.area_name,
-    ROUND(AVG(il.inspection_score), 2) AS average_score
-FROM
-    inspection_level AS il
-JOIN
-    area_dim AS ad
-        ON ad.area_key = il.area_key
-GROUP BY
-    ad.area_name
-ORDER BY
-    average_score ASC;
-
--- Expected result:
--- Staten Island  16.84
--- Manhattan     17.31
--- Bronx         17.87
--- Brooklyn      18.10
--- Queens        19.29
-
-
-----------------------------------------------
--- Q1B
-----------------------------------------------
-
--- Establishments count per area (open establishments only)
---
--- Notes:
--- - Each establishment is counted once per area.
--- - An establishment is considered "open" if it appears
---   in at least one inspection with a non-Closed action.
---
--- Interpretation:
--- - Manhattan hosts the largest number of active establishments.
--- - Staten Island has the smallest commercial density.
 
 SELECT
-    ad.area_name,
-    COUNT(DISTINCT ed.establishment_key) AS total_establishments_area
-FROM
-    establishment_dim AS ed
-JOIN
-    inspection_events_table AS iet
-        ON iet.establishment_key = ed.establishment_key
-JOIN
-    area_dim AS ad
-        ON ad.area_key = iet.area_key
-JOIN
-    inspection_dim AS id
-        ON id.inspection_key = iet.inspection_key
-WHERE
-    id.action_taken NOT LIKE '%Closed%'
-GROUP BY
-    ad.area_name
-ORDER BY
-    total_establishments_area;
-
--- Expected result:
--- Staten Island   720
--- Bronx          1681
--- Queens         4305
--- Brooklyn       4977
--- Manhattan      7223
+a.area_name,
+ROUND(AVG(i.score_assigned), 2) AS avg_score
+FROM inspection_scores i
+JOIN establishment_dim e
+ON i.establishment_key = e.establishment_key
+JOIN area_dim a
+ON i.area_key = a.area_key
+GROUP BY a.area_name
+ORDER BY avg_score DESC;
 
 
--- Inspections count per area (whole period, open establishments only)
---
--- Notes:
--- - Violations are collapsed to inspection level
---   (restaurant + inspection date).
--- - Each inspection is counted exactly once.
--- - Closed inspections are excluded.
---
--- Interpretation:
--- - Manhattan concentrates the highest absolute number of inspections.
--- - Inspection volume broadly follows establishment density,
---   suggesting proportional inspection coverage across areas.
+/* Expected result:
+area_name        | avg_score
+-----------------|----------
+QUEENS           | 18.26
+BROOKLYN         | 16.97
+BRONX            | 16.82
+MANHATTAN        | 16.48
+STATEN ISLAND    | 16.38
+*/
+
+/* ============================================================
+Q1B – Number of active establishments by area
+============================================================
+
+Objective:
+Measure the number of active establishments in each area.
+
+Notes:
+- An establishment is considered active if it appears in
+    at least one inspection with a non-"Closed" action.
+- Each establishment is counted once per area.
+
+Interpretation:
+- Manhattan hosts the highest number of active establishments.
+- Staten Island has the lowest commercial density.
+*/
+
+SELECT
+a.area_name,
+COUNT(DISTINCT fi.establishment_key) AS total_establishments_area
+FROM fact_inspection fi
+JOIN area_dim a
+ON fi.area_key = a.area_key
+WHERE fi.action_taken NOT LIKE '%Closed%'
+GROUP BY a.area_name
+ORDER BY total_establishments_area;
+
+
+/* Expected result:
+area_name        | total_establishments_area
+-----------------|--------------------------
+STATEN ISLAND    | 994
+BRONX            | 2401
+QUEENS           | 6278
+BROOKLYN         | 6983
+MANHATTAN        | 10610
+*/
+
+/* ============================================================
+Q1C – Number of inspections by area
+============================================================
+
+Objective:
+Compare inspection volume across areas over the full period.
+
+Notes:
+- Inspections are collapsed at inspection level
+    (establishment + inspection date).
+- Each inspection is counted exactly once.
+- Inspections with a "Closed" action are excluded.
+
+Interpretation:
+- Manhattan concentrates the highest absolute number of inspections.
+- Inspection volume broadly follows establishment density,
+    suggesting a proportional inspection coverage across areas.
+*/
 
 WITH inspection_level AS (
-    SELECT
-        iet.establishment_key,
-        iet.area_key,
-        iet.date_key
-    FROM
-        inspection_events_table AS iet
-    JOIN
-        inspection_dim AS id
-            ON id.inspection_key = iet.inspection_key
-    WHERE
-        id.action_taken NOT LIKE '%Closed%'
-    GROUP BY
-        iet.establishment_key,
-        iet.area_key,
-        iet.date_key
-)
 SELECT
-    ad.area_name,
-    COUNT(*) AS total_inspections
-FROM
-    inspection_level AS il
-JOIN
-    area_dim AS ad
-        ON ad.area_key = il.area_key
+    fi.establishment_key,
+    fi.area_key,
+    fi.date_key
+FROM fact_inspection fi
+WHERE fi.action_taken NOT LIKE '%Closed%'
 GROUP BY
-    ad.area_name
-ORDER BY
-    total_inspections DESC;
+    fi.establishment_key,
+    fi.area_key,
+    fi.date_key
+)
 
--- Expected result:
--- Manhattan      11502
--- Brooklyn        8132
--- Queens          7115
--- Bronx           2719
--- Staten Island   1179
+SELECT
+a.area_name,
+COUNT(*) AS total_inspections
+FROM inspection_level il
+JOIN area_dim a
+ON il.area_key = a.area_key
+GROUP BY a.area_name
+ORDER BY total_inspections DESC;
+
+
+/* Expected result:
+area_name        | total_inspections
+-----------------|------------------
+MANHATTAN        | 31520
+BROOKLYN         | 21585
+QUEENS           | 19328
+BRONX            | 7631
+STATEN ISLAND    | 3031
+*/

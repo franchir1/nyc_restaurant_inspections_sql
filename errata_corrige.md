@@ -202,3 +202,180 @@ In questa versione, tali decisioni sono state **posticipate** e **rese esplicite
 ---
 
 **Questo file documenta tutte le scelte tecniche rilevanti ed è pensato per essere letto da un reviewer o in fase di colloquio.**
+
+
+Perfetto. Qui sotto trovi **un riassunto compatto, ordinato e “da conservare”** di **tutte le verifiche effettuate** e **di tutte le assunzioni dichiarate**, scritto in modo che tu possa:
+
+* copiarlo in un file `important_notes.md`
+* usarlo in **colloquio**
+* difendere ogni scelta con **numeri**
+
+---
+
+# Key Assumptions & Validation Results
+
+## 1. Dataset & ETL Scope
+
+* Source dataset: NYC DOHMH Restaurant Inspection Results
+* Initial volume: ~295K rows (violation-level raw records)
+* ETL performed in **Power Query**
+* PostgreSQL used for **data modeling and validation**
+
+**ETL principle**
+
+> No business logic or deduplication is applied during ETL.
+> All analytical assumptions are enforced and validated at the data warehouse level.
+
+---
+
+## 2. Clean Data Table (`clean_data_table`)
+
+### Grain
+
+> **1 row = 1 violation recorded during an inspection**
+
+### Validation results
+
+* Total rows loaded: ~295K
+* Rows with `inspection_date IS NULL`: ~3.3K
+* Rows with `score_assigned IS NULL`: ~16.2K
+* No rows dropped implicitly
+* No deduplication applied
+
+**Conclusion**
+The clean table preserves the maximum level of detail and acts as a neutral landing layer.
+
+---
+
+## 3. Inspection Grain Assumption
+
+### Assumption
+
+> An inspection can be approximated as:
+> **(establishment, inspection_date)**
+
+### Empirical validation
+
+* Distinct `(camis_code, inspection_date)` in clean data: **~84K**
+* Restaurant-days with multiple distinct `action_taken`: **747**
+* Percentage of violations: **0.886%**
+
+**Conclusion**
+The assumption is formally imperfect but statistically negligible and explicitly documented.
+
+---
+
+## 4. Dimension Tables Validation
+
+### `date_dim`
+
+* No missing inspection dates
+* Full coverage of non-null dates
+
+### `establishment_dim`
+
+* No missing CAMIS codes
+* One row per establishment
+
+### `area_dim`
+
+* One row per geographic area
+* Area treated as establishment-level attribute
+
+### `violation_dim`
+
+* `violation_code` is the only stable natural key
+* `critical_flag` varies across inspections and is **not dimensionally stable**
+* Violation descriptions are collapsed deterministically (`MAX(description)`)
+
+**Conclusion**
+All dimensions are complete and consistent with functional dependencies observed in the data.
+
+---
+
+## 5. Fact Table: `fact_inspection`
+
+### Grain
+
+> **1 row = 1 inspection event**
+
+### Loading strategy
+
+* Grouped by `(establishment_key, date_key)`
+* Collapsing rules:
+
+  * `score_assigned` → **MAX** (worst score retained)
+  * `action_taken` → **MAX** (canonical representation)
+  * `area_key` → **MIN** (establishment-level attribute)
+
+### Validation results
+
+* Rows loaded: **~84K**
+* Duplicate `(establishment_key, date_key)` pairs: **0**
+* All inspections from clean data represented
+* No missing dimension joins
+
+**Conclusion**
+Inspection-level grain is enforced correctly without data loss.
+
+---
+
+## 6. Bridge Fact: `fact_inspection_violation`
+
+### Grain
+
+> **1 row = 1 violation observed during 1 inspection**
+
+### Key modeling choice
+
+* The bridge represents **presence**, not frequency
+* Duplicate raw records are intentionally collapsed
+
+### Validation results (in order)
+
+1. Total rows in bridge: **290**
+2. Duplicate `(inspection_key, violation_key)` pairs: **0**
+3. Distinct inspection–violation pairs in clean data: **290**
+4. Missing `violation_dim` references: **0**
+5. Missing `fact_inspection` references: **0**
+
+**Conclusion**
+All inspection–violation relationships are preserved exactly once, with full referential integrity.
+
+---
+
+## 7. Critical Flag Handling
+
+### Empirical finding
+
+* `critical_flag` varies for the same `violation_code`
+
+### Modeling decision
+
+> `critical_flag` is inspection-dependent and therefore modeled as a **fact attribute**, not a dimension attribute.
+
+**Conclusion**
+Functional dependencies are respected; no semantic compression is applied.
+
+---
+
+## 8. Overall Model Integrity
+
+* No silent data loss
+* All assumptions quantified and documented
+* Every aggregation rule is explicit
+* Star schema is stable, minimal, and defensible
+
+---
+
+## Final Statement
+
+> *The data model is driven by empirical validation rather than theoretical assumptions.
+> All compromises are quantified, documented, and justified.*
+
+---
+
+Se vuoi, nel prossimo passo possiamo:
+
+* trasformare questo testo in **README finale**
+* oppure preparare una **risposta “da colloquio” in 60 secondi** basata su queste note
