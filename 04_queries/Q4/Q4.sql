@@ -1,17 +1,17 @@
--- Q4 — Percentage of hygiene violations during weekends (Sat–Sun)
--- compared to weekdays (Mon–Fri)
+-- Q4 — Hygiene violations: weekends vs weekdays (normalized)
 --
 -- Hypothesis:
 -- Higher customer traffic during weekends may increase the likelihood
--- of hygiene violations, indicating potential management issues.
+-- of hygiene violations. Since weekends cover fewer days (2 vs 5),
+-- violations are normalized by day count.
 
-WITH violations_counts AS (
+WITH violation_totals AS (
     SELECT
-        COUNT(id.violation_code) AS total_violations,
+        COUNT(*) AS total_violations,
         COUNT(
             CASE
                 WHEN dd.is_weekend = TRUE
-                THEN id.violation_code
+                THEN 1
             END
         ) AS weekend_violations
     FROM inspection_events_table AS iet
@@ -20,22 +20,50 @@ WITH violations_counts AS (
     JOIN date_dim AS dd
         ON iet.date_key = dd.date_key
     WHERE id.violation_code IS NOT NULL
+),
+
+normalized AS (
+    SELECT
+        total_violations,
+        weekend_violations,
+        total_violations - weekend_violations AS weekday_violations,
+
+        -- normalize by number of days
+        (weekend_violations / 2.0) AS weekend_per_day,
+        ((total_violations - weekend_violations) / 5.0) AS weekday_per_day
+    FROM violation_totals
 )
 
 SELECT
+    total_violations,
     weekend_violations,
-    total_violations - weekend_violations AS weekday_violations,
-    ROUND(
-        weekend_violations::NUMERIC / total_violations * 100,
-        2
-    ) AS weekend_violation_percentage
-FROM violations_counts;
+    weekday_violations,
 
+    ROUND(
+        weekend_per_day
+        / (weekend_per_day + weekday_per_day)
+        * 100,
+        2
+    ) AS normalized_weekend_percentage,
+
+    ROUND(
+        weekday_per_day
+        / (weekend_per_day + weekday_per_day)
+        * 100,
+        2
+    ) AS normalized_weekday_percentage
+FROM normalized;
 
 /*
+RESULTS — Normalized weekend vs weekday violations
 
-weekend_violations | weekday_violations | weekend_violation_percentage
------------------- | ------------------ | ----------------------------
-29903              | 74708              | 28.58
+total_violations              : 104611
+weekend_violations            : 29903
+weekday_violations            : 74708
+normalized_weekend_percentage : 50.02 %
+normalized_weekday_percentage : 49.98 %
 
+Interpretation:
+Once normalized by the number of days (2 weekend vs 5 weekdays),
+the daily probability of a hygiene violation is effectively identical.
 */

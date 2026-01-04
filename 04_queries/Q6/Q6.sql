@@ -1,176 +1,118 @@
--- QUERY 6: ANALYSIS OF NON-IMPROVED ESTABLISHMENTS
--- Objective: identify the most recurring parameters among establishments
--- that did not improve between the first and last inspection
--- (geographic data such as area and regulation-related data such as most frequent violation codes),
--- in order to prioritize inspection procedures.
+-- Q6 — Analysis of non-improved establishments
+--
+-- Objective:
+-- Identify recurring patterns among establishments whose inspection score
+-- did NOT improve between the first and last inspection.
+--
+-- Focus:
+--   Q6A → most frequent violation codes
+--   Q6B → geographic distribution
+--
+-- Interpretation:
+-- Lower score = better outcome → non-improved means last_score >= first_score
 
---- QUERY 1 --- most frequent violation codes
-
-WITH score_list AS (
-    SELECT DISTINCT
-        establishment_key AS est_id,
-        date_key AS date_id,
-        score_assigned AS score,
-        FIRST_VALUE(score_assigned) OVER (
-            PARTITION BY establishment_key 
-            ORDER BY date_key ASC -- ascending date order selects the first value, i.e. the oldest
-        ) AS first_score,
-        -- final score (most recent)
-        FIRST_VALUE(score_assigned) OVER (
-            PARTITION BY establishment_key 
-            ORDER BY date_key DESC  -- descending date order selects the first value, i.e. the most recent
-        ) AS last_score
-    FROM
-        inspection_events_table
-    GROUP BY
-        est_id, date_id, score
-    ORDER BY
-        est_id, date_id
-), improved_list AS (
-    SELECT DISTINCT
-        est_id,
-        first_score,
-        last_score,
-        CASE
-            WHEN last_score < first_score THEN TRUE
-            ELSE FALSE
-        END AS is_improved
-    FROM
-        score_list
-), non_improved_list AS (
-
+WITH establishment_scores AS (
     SELECT
-        est_id
-    FROM
-        improved_list
-    WHERE
-        is_improved = FALSE
-    ORDER BY
-        est_id
-), non_improved_list_location AS (
+        establishment_key,
+
+        -- oldest inspection score
+        FIRST_VALUE(score_assigned) OVER (
+            PARTITION BY establishment_key
+            ORDER BY date_key ASC
+        ) AS first_score,
+
+        -- most recent inspection score
+        FIRST_VALUE(score_assigned) OVER (
+            PARTITION BY establishment_key
+            ORDER BY date_key DESC
+        ) AS last_score
+    FROM inspection_events_table
+),
+
+non_improved_establishments AS (
     SELECT DISTINCT
-        est_id,
-        ad.area_name AS area_name
-    FROM
-        non_improved_list
-    JOIN
-        inspection_events_table AS iet ON est_id = iet.establishment_key
-    JOIN
-        area_dim AS ad ON iet.area_key = ad.area_key
-    ORDER BY
-        est_id
-), violations_count_list AS (
-    SELECT -- CTE to count the number of violations per establishment
-        establishment_key AS est_id,
-        id.violation_code AS vio_code,
-        id.violation_description AS vio_desc,
-        COUNT(id.violation_code) AS violations_count
-    FROM
-        inspection_events_table AS iet
-    JOIN
-        inspection_dim AS id ON iet.inspection_key = id.inspection_key
-    WHERE
-        id.violation_code IS NOT NULL
-    GROUP BY
-        est_id, vio_code, vio_desc
-    ORDER BY
-        est_id ASC, violations_count DESC
+        establishment_key
+    FROM establishment_scores
+    WHERE last_score >= first_score
 )
 
-SELECT -- most frequent violated codes among establishments with increased score
-    vcl.vio_code,
-    SUM(vcl.violations_count) AS total_count,
-    vcl.vio_desc
-FROM
-    non_improved_list AS nil
-JOIN
-    violations_count_list AS vcl ON vcl.est_id = nil.est_id
+--------------------------------------------------
+-- Q6A — Most frequent violation codes
+-- among non-improved establishments
+--------------------------------------------------
+
+SELECT
+    id.violation_code,
+    COUNT(*) AS total_violations,
+    id.violation_description
+FROM non_improved_establishments AS nie
+JOIN inspection_events_table AS iet
+    ON nie.establishment_key = iet.establishment_key
+JOIN inspection_dim AS id
+    ON iet.inspection_key = id.inspection_key
+WHERE id.violation_code IS NOT NULL
 GROUP BY
-    vcl.vio_code, vcl.vio_desc
+    id.violation_code,
+    id.violation_description
 ORDER BY
-    total_count DESC
-LIMIT
-    10;
+    total_violations DESC
+LIMIT 10;
 
---- QUERY 2 --- geographic distribution of establishments
+/*
+RESULTS — Q6A (Top 10 Violation Codes)
 
-WITH score_list AS (
-    SELECT DISTINCT
-        establishment_key AS est_id,
-        date_key AS date_id,
-        score_assigned AS score,
-        FIRST_VALUE(score_assigned) OVER (
-            PARTITION BY establishment_key 
-            ORDER BY date_key ASC -- ascending date order selects the first value, i.e. the oldest
-        ) AS first_score,
-        -- final score (most recent)
-        FIRST_VALUE(score_assigned) OVER (
-            PARTITION BY establishment_key 
-            ORDER BY date_key DESC  -- descending date order selects the first value, i.e. the most recent
-        ) AS last_score
-    FROM
-        inspection_events_table
-    GROUP BY
-        est_id, date_id, score
-    ORDER BY
-        est_id, date_id
-), improved_list AS (
-    SELECT DISTINCT
-        est_id,
-        first_score,
-        last_score,
-        CASE
-            WHEN last_score < first_score THEN TRUE
-            ELSE FALSE
-        END AS is_improved
-    FROM
-        score_list
-), non_improved_list AS (
+| Rank | Code | Total Violations | Description (shortened)                         |
+|-----:|------|------------------|-------------------------------------------------|
+| 1    | 10F  | 10 377           | Non-food contact surfaces improperly maintained |
+| 2    | 08A  | 6 597            | Conditions conducive to pests                   |
+| 3    | 06D  | 4 811            | Food contact surface not sanitized              |
+| 4    | 10B  | 4 709            | Drainage / sewage disposal issues               |
+| 5    | 02G  | 4 459            | Cold TCS food held above required temperature   |
+| 6    | 06C  | 4 421            | Food/equipment exposed to contamination         |
+| 7    | 02B  | 3 780            | Hot food not held at ≥ 140°F                    |
+| 8    | 04L  | 3 761            | Evidence of mice                                |
+| 9    | 04N  | 2 941            | Flies / nuisance pests                          |
+| 10   | 04A  | 1 950            | Missing Food Protection Certificate             |
 
-    SELECT
-        est_id
-    FROM
-        improved_list
-    WHERE
-        is_improved = FALSE
-    ORDER BY
-        est_id
-), non_improved_list_location AS (
-    SELECT DISTINCT
-        est_id,
-        ad.area_name AS area_name
-    FROM
-        non_improved_list
-    JOIN
-        inspection_events_table AS iet ON est_id = iet.establishment_key
-    JOIN
-        area_dim AS ad ON iet.area_key = ad.area_key
-    ORDER BY
-        est_id
-), violations_count_list AS (
-    SELECT -- CTE to count the number of violations per establishment
-        establishment_key AS est_id,
-        id.violation_code AS vio_code,
-        id.violation_description AS vio_desc,
-        COUNT(id.violation_code) AS violations_count
-    FROM
-        inspection_events_table AS iet
-    JOIN
-        inspection_dim AS id ON iet.inspection_key = id.inspection_key
-    WHERE
-        id.violation_code IS NOT NULL
-    GROUP BY
-        est_id, vio_code, vio_desc
-    ORDER BY
-        est_id ASC, violations_count DESC
-)
+Insight:
+Non-improved establishments are dominated by
+STRUCTURAL, HYGIENE and PEST-RELATED violations,
+suggesting persistent management and facility issues
+rather than occasional procedural errors.
+*/
 
-SELECT -- geographic distribution of establishments with increased score
-    area_name,
-    COUNT(est_id) AS total_count
-FROM
-    non_improved_list_location
+--------------------------------------------------
+-- Q6B — Geographic distribution
+-- of non-improved establishments
+--------------------------------------------------
+
+SELECT
+    ad.area_name,
+    COUNT(DISTINCT nie.establishment_key) AS total_establishments
+FROM non_improved_establishments AS nie
+JOIN inspection_events_table AS iet
+    ON nie.establishment_key = iet.establishment_key
+JOIN area_dim AS ad
+    ON iet.area_key = ad.area_key
 GROUP BY
-    area_name
+    ad.area_name
 ORDER BY
-    total_count DESC;
+    total_establishments DESC;
+
+/*
+RESULTS — Q6B (Geographic Distribution)
+
+| Area           | Non-Improved Establishments |
+|----------------|-----------------------------|
+| Manhattan      | 5 675                       |
+| Brooklyn       | 3 900                       |
+| Queens         | 3 343                       |
+| Bronx          | 1 313                       |
+| Staten Island  |   557                       |
+
+Insight:
+The distribution closely mirrors the overall density
+of establishments, indicating that non-improvement
+is a systemic issue rather than a borough-specific anomaly.
+*/
+
