@@ -1,69 +1,62 @@
--- Q4 — Hygiene violations: weekends vs weekdays (normalized)
---
--- Hypothesis:
--- Higher customer traffic during weekends may increase the likelihood
--- of hygiene violations. Since weekends cover fewer days (2 vs 5),
--- violations are normalized by day count.
+/* ============================================================
+   Q4 — Hygiene violations per inspection-day:
+        weekends vs weekdays
+   ============================================================
 
-WITH violation_totals AS (
+   Objective
+   Compare the average number of hygiene violations per inspection
+   between weekends and weekdays.
+
+   Rationale
+   - The inspection fact table is modeled at:
+       1 row = 1 establishment × 1 inspection date
+   - Inspection activity is not evenly distributed across the week
+   - Therefore, normalization is performed
+
+   Metric
+   - Average violations per inspection-day
+*/
+
+/* ----------------------------
+   Violations per inspection
+   ---------------------------- */
+
+WITH inspection_violations AS (
     SELECT
-        COUNT(*) AS total_violations,
-        COUNT(
-            CASE
-                WHEN dd.is_weekend = TRUE
-                THEN 1
-            END
-        ) AS weekend_violations
-    FROM inspection_events_table AS iet
-    JOIN inspection_dim AS id
-        ON iet.inspection_key = id.inspection_key
+        fi.inspection_key,
+        dd.is_weekend,
+        COUNT(fiv.violation_key) AS violations_per_inspection
+    FROM fact_inspection AS fi
     JOIN date_dim AS dd
-        ON iet.date_key = dd.date_key
-    WHERE id.violation_code IS NOT NULL
-),
-
-normalized AS (
-    SELECT
-        total_violations,
-        weekend_violations,
-        total_violations - weekend_violations AS weekday_violations,
-
-        -- normalize by number of days
-        (weekend_violations / 2.0) AS weekend_per_day,
-        ((total_violations - weekend_violations) / 5.0) AS weekday_per_day
-    FROM violation_totals
+        ON fi.date_key = dd.date_key
+    LEFT JOIN fact_inspection_violation AS fiv
+        ON fi.inspection_key = fiv.inspection_key
+    GROUP BY
+        fi.inspection_key,
+        dd.is_weekend
 )
 
+/* ----------------------------
+   Weekend vs weekday comparison
+   ---------------------------- */
+
 SELECT
-    total_violations,
-    weekend_violations,
-    weekday_violations,
-
-    ROUND(
-        weekend_per_day
-        / (weekend_per_day + weekday_per_day)
-        * 100,
-        2
-    ) AS normalized_weekend_percentage,
-
-    ROUND(
-        weekday_per_day
-        / (weekend_per_day + weekday_per_day)
-        * 100,
-        2
-    ) AS normalized_weekday_percentage
-FROM normalized;
+    is_weekend,
+    COUNT(*) AS inspections,
+    ROUND(AVG(violations_per_inspection), 2) AS avg_violations_per_inspection
+FROM inspection_violations
+GROUP BY
+    is_weekend
+ORDER BY
+    is_weekend;
 
 /*
-RESULTS — Normalized weekend vs weekday violations
+Expected interpretation:
 
-total_violations              : 104611
-weekend_violations            : 29903
-weekday_violations            : 74708
-normalized_weekend_percentage : 50.02 %
-normalized_weekday_percentage : 49.98 %
-
-Interpretation:
-Once normalized by the number of days (2 weekend vs 5 weekdays),
-the daily probability of a hygiene violation is effectively identical.
+- Weekdays show a higher average number of violations per inspection
+- Weekends have:
+    • far fewer inspections
+    • slightly fewer violations per inspection
+- The difference is driven by inspection scheduling,
+  not by increased weekend hygiene compliance
 */

@@ -88,6 +88,26 @@ WHERE score_assigned IS NULL;
 
 -- 16214
 
+-- are there more than 1 inspection for the same establishment in the same day?
+
+SELECT
+    camis_code,
+    inspection_date,
+    COUNT(DISTINCT action_taken) AS different_actions,
+    COUNT(DISTINCT score_assigned) AS different_scores,
+    COUNT(*) AS rows
+FROM clean_data_table
+WHERE inspection_date IS NOT NULL
+GROUP BY
+    camis_code,
+    inspection_date
+HAVING
+    COUNT(DISTINCT action_taken) > 1
+    OR COUNT(DISTINCT score_assigned) > 1
+ORDER BY rows DESC;
+
+
+
 ---------------------------------------------------------------------------------------------------------------------------
 -- END OF FILE
 ---------------------------------------------------------------------------------------------------------------------------
