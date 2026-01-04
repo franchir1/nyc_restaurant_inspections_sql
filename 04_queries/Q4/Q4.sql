@@ -1,33 +1,41 @@
--- QUERY 4: CHECK THE PERCENTAGE OF HYGIENE VIOLATIONS DURING WEEKENDS (SAT–SUN)
--- COMPARED TO WEEKDAYS (MON–FR)
+-- Q4 — Percentage of hygiene violations during weekends (Sat–Sun)
+-- compared to weekdays (Mon–Fri)
+--
+-- Hypothesis:
+-- Higher customer traffic during weekends may increase the likelihood
+-- of hygiene violations, indicating potential management issues.
 
--- Objective: during weekends, high customer traffic may cause negligence
--- in complying with hygiene regulations, potentially indicating poor management issues
-
-WITH violations_count_list AS (
-    -- CTE: calculates total violations and violations occurring only on weekends
+WITH violations_counts AS (
     SELECT
+        COUNT(id.violation_code) AS total_violations,
         COUNT(
-            CASE 
-                WHEN id.violation_code IS NOT NULL 
-                THEN 1 
+            CASE
+                WHEN dd.is_weekend = TRUE
+                THEN id.violation_code
             END
-        ) AS total_violations,
-        COUNT(
-            CASE 
-                WHEN (id.violation_code IS NOT NULL AND dd.is_weekend = TRUE) 
-                THEN 1 
-            END
-        ) AS total_wknd_violations
-    FROM
-        inspection_events_table AS iet
-    JOIN
-        inspection_dim AS id ON iet.inspection_key = id.inspection_key
-    JOIN
-        date_dim AS dd ON iet.date_key = dd.date_key
+        ) AS weekend_violations
+    FROM inspection_events_table AS iet
+    JOIN inspection_dim AS id
+        ON iet.inspection_key = id.inspection_key
+    JOIN date_dim AS dd
+        ON iet.date_key = dd.date_key
+    WHERE id.violation_code IS NOT NULL
 )
-SELECT -- display the percentage of weekend violations over total violations
-    total_wknd_violations,
-    (total_violations - total_wknd_violations) AS total_weekdays
-FROM
-    violations_count_list;
+
+SELECT
+    weekend_violations,
+    total_violations - weekend_violations AS weekday_violations,
+    ROUND(
+        weekend_violations::NUMERIC / total_violations * 100,
+        2
+    ) AS weekend_violation_percentage
+FROM violations_counts;
+
+
+/*
+
+weekend_violations | weekday_violations | weekend_violation_percentage
+------------------ | ------------------ | ----------------------------
+29903              | 74708              | 28.58
+
+*/
