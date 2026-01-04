@@ -10,7 +10,6 @@
 
    Notes
    - Grain: 1 row = 1 establishment × 1 inspection date
-   - Score is evaluated at inspection-day level
    - Establishments with only one inspection-day are excluded
    - Lower score = better outcome
 */
@@ -35,7 +34,7 @@ WITH establishment_scores AS (
             ORDER BY date_key DESC
         ) AS last_score,
 
-        COUNT(DISTINCT date_key) OVER (
+        COUNT(*) OVER (
             PARTITION BY establishment_key
         ) AS inspection_days
     FROM fact_inspection
@@ -74,10 +73,3 @@ SELECT
         2
     ) AS improved_percentage
 FROM aggregated;
-
-/*
-Interpretation
-- Measures score improvement between first and last inspection-day
-- Excludes establishments without a temporal trajectory
-- Result is comparable and methodologically sound within this schema
-*/
