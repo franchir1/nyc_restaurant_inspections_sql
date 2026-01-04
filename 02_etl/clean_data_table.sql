@@ -153,3 +153,13 @@ WHERE
 SELECT *
 FROM
     clean_data_table;
+
+SELECT
+  violation_code,
+  COUNT(DISTINCT action_taken) AS n_actions,
+  COUNT(DISTINCT critical_flag) AS n_critical_flags
+FROM clean_data_table
+WHERE violation_code IS NOT NULL
+GROUP BY violation_code
+HAVING COUNT(DISTINCT action_taken) > 1
+    OR COUNT(DISTINCT critical_flag) > 1;
