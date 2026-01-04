@@ -73,13 +73,21 @@ Le analisi SQL sono organizzate per **domande di business** e includono:
 - identificazione di pattern di miglioramento o peggioramento
 - analisi della frequenza e persistenza delle violazioni critiche
 
-## Scelte metodologiche
+## Scelte metodologiche e assunzioni di modellazione
 
-- lo score di un’ispezione è considerato **unitario**, anche in presenza di più violazioni
-- le analisi privilegiano **trend e confronti strutturali**, non eventi isolati
-- i trend temporali sono presentati come risultato di fluttuazioni anno per anno.
+- La fact table (`inspection_events_table`) è modellata a **livello di violazione**:
+  ogni riga rappresenta una singola violazione rilevata durante un’ispezione.
 
-Queste scelte mirano a garantire **coerenza semantica** e interpretabilità dei risultati.
+- L’ispezione **non è un’entità esplicita** nel dataset sorgente.
+  A fini analitici, un’ispezione viene approssimata come:
+  **(stabilimento, data di ispezione)**.
+
+- Tutti i KPI vengono calcolati **dopo un’aggregazione a livello ispezione**
+  per evitare distorsioni dovute a violazioni multiple nella stessa ispezione.
+
+- La presenza di più ispezioni per lo stesso stabilimento nello stesso giorno
+  è stata verificata empiricamente e risulta pari a circa **0,003% dei casi**,
+  pertanto considerata statisticamente trascurabile.
 
 ## Principali evidenze
 

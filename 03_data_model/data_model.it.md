@@ -326,19 +326,53 @@ JOIN inspection_dim AS id
 
 ## Considerazioni tecniche
 
-### Granularità della fact table
+## Granularità della fact table
 
-Il dataset originale può contenere:
+La fact table `inspection_events_table` è modellata a **livello di violazione**.
 
-* più violazioni per la stessa ispezione
-* più righe per lo stesso stabilimento e la stessa data
+Ogni riga rappresenta una singola violazione rilevata durante un’ispezione.
+Di conseguenza, una stessa ispezione può generare più righe nella fact table,
+una per ciascuna violazione contestata.
 
-Questo implica che la fact table
-possa avere più righe per uno stesso evento “logico”.
-In fase di analisi è quindi fondamentale distinguere tra:
+## Definizione operativa di ispezione
 
-* conteggio di eventi
-* conteggio di violazioni
+Nel dataset sorgente non esiste un identificativo univoco dell’ispezione
+come entità di business.
+
+Per esigenze analitiche, un’ispezione viene approssimata come la combinazione di:
+
+- stabilimento
+- data di ispezione
+
+ovvero: **(establishment_key, date_key)**.
+
+Questa definizione consente di aggregare correttamente i dati
+e calcolare KPI affidabili a livello di ispezione.
+
+## Verifica delle assunzioni
+
+È stata verificata empiricamente la possibilità che uno stesso stabilimento
+riceva più ispezioni nello stesso giorno.
+
+Utilizzando il campo `action_taken` come proxy dell’ispezione,
+si osserva che i casi di ispezioni multiple nello stesso giorno
+rappresentano circa **0,003%** del totale.
+
+L’impatto di questa approssimazione è pertanto considerato
+statisticamente trascurabile.
+
+## Impatto sul calcolo dei KPI
+
+Poiché la fact table è a livello di violazione,
+tutti i KPI vengono calcolati seguendo due fasi distinte:
+
+1. aggregazione dei dati a livello di ispezione
+2. calcolo delle metriche finali (medie, conteggi, percentuali)
+
+Questo approccio evita la sovrastima dei KPI
+dovuta alla presenza di violazioni multiple
+all’interno della stessa ispezione.
+
 
 ---
 

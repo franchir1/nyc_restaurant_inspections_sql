@@ -10,6 +10,18 @@ Ogni cartella di analisi contiene:
 - output (tabelle CSV e/o grafici)
 - interpretazione finale dei risultati
 
+## Nota metodologica
+
+Le query analitiche operano su dati aggregati a livello di ispezione
+(stabilimento + data di ispezione).
+
+Questa scelta è necessaria per evitare distorsioni nei KPI
+dovute alla granularità a livello di violazione della fact table.
+
+Le query di verifica utilizzate per validare tali assunzioni
+sono incluse nel repository a scopo documentativo.
+
+
 ## [Q1](/04_queries/Q1/Q1.it.md) – Qualità dei dati e proporzionalità delle ispezioni  
 **Domanda:**  
 Il numero di ispezioni è **proporzionale al numero di stabilimenti**
