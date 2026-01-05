@@ -1,184 +1,139 @@
-# ETL – Data Extraction, Cleaning, and Loading
+# ETL Pipeline – NYC Health Inspections
 
-## Dataset source
+## Overview
+The ETL process integrates raw NYC Health Inspection data into a clean dimensional model
+optimized for analytical queries and BI reporting.
 
-The original dataset includes:
+The pipeline combines:
+- SQL transformations (PostgreSQL)
+- Power Query for data ingestion, cleaning, and shaping
 
-* establishment information
-* inspection dates and types
-* detected violations
-* assigned scores
-* extensive administrative and geographic data
+The final output is a star schema composed of dimension tables and fact tables.
 
-Not all columns are relevant. Targeted selection and normalization are therefore required.
+---
 
-## Raw data preparation
+## Source Data
+Raw data is sourced from NYC Health Department inspection records and includes:
+- inspection dates
+- establishment information
+- geographic areas
+- inspection scores
+- violation events
 
-The original DOHMH dataset is initially processed **outside the database** using **Power Query (Excel)**.
+Data is loaded into PostgreSQL as raw tables and then transformed.
 
-The applied transformations include:
+---
 
-1. removal of administrative and non-relevant columns
-2. renaming columns with semantic names
-3. normalization of date formats
-4. replacement of empty or dummy values with `NULL`
-5. data type correction
-6. removal of rows missing `inspection_date` or `score_assigned`
+## ETL Architecture
 
-At the end of this phase, the dataset is exported as a CSV file and used as input for PostgreSQL.
+**Flow:**
 
-## Creation of the intermediate table
+Raw CSV  
+→ Power Query (cleaning & normalization)  
+→ PostgreSQL staging tables  
+→ SQL transformations  
+→ Dimensional model (star schema)
 
-In the PostgreSQL database, a **staging** table named `raw_data_table` is created.
+Power Query is used as the primary **EL (Extract & Load)** layer, while SQL handles
+**data modeling and business logic**.
 
-This table:
+---
 
-* **does not represent the original raw dataset**
-* contains data **already cleaned and normalized** via Power Query
-* serves as an intermediate layer before final filtering
+## Power Query – Data Cleaning & Preparation
 
-```sql
-CREATE TABLE raw_data_table (
-    camis_code VARCHAR(10) NOT NULL,
-    establishment_name VARCHAR(120),
-    area_name VARCHAR(15),
-    building_code VARCHAR(15),
-    street_name VARCHAR(150),
-    zip_code VARCHAR(5) NOT NULL,
-    cuisine_description VARCHAR(60),
-    inspection_date DATE,
-    action_taken VARCHAR(150),
-    violation_code VARCHAR(5) NOT NULL,
-    violation_description VARCHAR(2000),
-    critical_flag VARCHAR(15),
-    score_assigned INT
-);
-```
+Power Query performs the following steps consistently across all entities:
 
-## Loading cleaned data
+- Column renaming and standardization
+- Data type enforcement
+- Removal of rows with null or invalid business keys
+- Deduplication of business keys
+- Basic normalization (e.g. trimming text, uppercasing codes)
 
-The cleaned dataset is exported as a CSV file and loaded into PostgreSQL using the `COPY` command.
+No aggregations are performed in Power Query.
 
-```sql
-COPY public.raw_data_table (
-    camis_code,
-    establishment_name,
-    area_name,
-    building_code,
-    street_name,
-    zip_code,
-    cuisine_description,
-    inspection_date,
-    action_taken,
-    violation_code,
-    violation_description,
-    critical_flag,
-    score_assigned
+Power Query output tables represent **clean, row-level data**.
+
+---
+
+## Data Quality Checks
+
+Data quality is enforced at two levels:
+
+### Power Query
+- Removal of rows with missing critical fields
+- Consistent data types
+- Early detection of malformed records
+
+### SQL
+- Primary key uniqueness checks
+- Referential integrity between fact and dimension tables
+- Grain validation on fact tables
+
+All checks passed before dimensional loading.
+
+---
+
+## Dimensional Modeling
+
+The final model follows a **star schema**.
+
+### Dimensions
+- `date_dim`
+- `area_dim`
+- `establishment_dim`
+- `violation_dim`
+
+Each dimension:
+- Uses surrogate keys
+- Contains no metrics
+- Represents a single business entity
+
+---
+
+## Fact Tables
+
+### `fact_inspection`
+**Grain:** one row per inspection
+
+Measures:
+- score_assigned
+
+Foreign keys:
+- date
+- establishment
+- area
+
+---
+
+### `fact_inspection_violation`
+**Grain:** one row per violation event per inspection
+
+Purpose:
+- track frequency and distribution of critical violations
+
+Foreign keys:
+- inspection
+- violation
+- area
+- date
+
+---
+
+## Loading Strategy
+
+- Full refresh ETL
+- Dimensions loaded before facts
+- Fact tables loaded only after all dimension keys are resolved
+
+---
+
+## Assumptions & Limitations
+
+- Inspection score interpretation: higher score indicates worse outcome
+- No late-arriving dimensions handled (e.g. fact records are loaded only after all dimension tables are fully refreshed,
+preventing late-arriving dimension scenarios)
+- Historical corrections overwrite previous data (e.g. inspection scores may be overwritten if the source system updates past inspection records
 )
-FROM 'C:\raw_data\raw_data_table.csv'
-WITH (FORMAT csv, DELIMITER ';', HEADER, ENCODING 'UTF8', QUOTE '"');
-```
+- Analysis assumes stable inspection policy across areas
 
-## Creation of the final table
-
-The `clean_data_table` represents the **final dataset** used throughout the project.
-
-```sql
-CREATE TABLE clean_data_table (
-    camis_code VARCHAR(10) NOT NULL,
-    establishment_name VARCHAR(120),
-    area_name VARCHAR(15),
-    building_code VARCHAR(15),
-    street_name VARCHAR(150),
-    zip_code VARCHAR(5) NOT NULL,
-    cuisine_description VARCHAR(60),
-    inspection_date DATE,
-    action_taken VARCHAR(150),
-    violation_code VARCHAR(5) NOT NULL,
-    violation_description VARCHAR(2000),
-    critical_flag VARCHAR(15),
-    score_assigned INT
-);
-```
-
-## Filtering invalid rows
-
-To ensure consistent analysis, only rows containing:
-
-* a **valid inspection date**
-* a **valid assigned score**
-
-are inserted into the final table.
-
-```sql
-INSERT INTO clean_data_table
-SELECT *
-FROM raw_data_table
-WHERE inspection_date IS NOT NULL
-  AND score_assigned IS NOT NULL;
-```
-
-### Rationale
-
-* without a date → no temporal analysis
-* without a score → no performance evaluation
-
-## Database reset and maintenance tools
-
-During development and testing, it is necessary to quickly clean tables.
-
-```sql
-TRUNCATE TABLE date_dim RESTART IDENTITY;
-TRUNCATE TABLE establishment_dim RESTART IDENTITY;
-TRUNCATE TABLE area_dim RESTART IDENTITY;
-TRUNCATE TABLE inspection_dim RESTART IDENTITY;
-TRUNCATE TABLE inspection_events_table RESTART IDENTITY;
-```
-
-For a full cleanup with active constraints:
-
-```sql
-TRUNCATE TABLE
-    date_dim,
-    establishment_dim,
-    area_dim,
-    inspection_dim
-RESTART IDENTITY CASCADE;
-```
-
-## Constraint management and schema adjustment
-
-During loading and joins, some `NOT NULL` constraints may cause errors. For this reason, they are temporarily removed.
-
-```sql
-ALTER TABLE public.clean_data_table ALTER COLUMN camis_code DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN establishment_name DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN cuisine_description DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN area_name DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN building_code DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN street_name DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN zip_code DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN inspection_date DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN action_taken DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN violation_code DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN violation_description DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN critical_flag DROP NOT NULL;
-ALTER TABLE public.clean_data_table ALTER COLUMN score_assigned DROP NOT NULL;
-```
-
-To prevent truncation of violation descriptions:
-
-```sql
-ALTER TABLE public.raw_data_table
-ALTER COLUMN violation_description TYPE VARCHAR(2000);
-```
-
-## Final output of the ETL phase
-
-The result of the ETL process is the `clean_data_table`:
-
-* containing only valid data
-* semantically consistent
-* ready for star schema modeling
-
-*Back to the [README](/README.md)*
+---
