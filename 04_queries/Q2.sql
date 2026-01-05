@@ -96,11 +96,16 @@ Confirm that the clean table operates at violation-level grain.
 */
 
 SELECT
-    COUNT(*) AS total_rows,
-    COUNT(DISTINCT inspection_key) AS distinct_inspections,
-    COUNT(DISTINCT inspection_key, violation_code)
-        AS distinct_inspection_violation_pairs
+  COUNT(*) AS total_rows,
+  COUNT(DISTINCT (camis_code, inspection_date)) AS distinct_inspections,
+  COUNT(DISTINCT (camis_code, inspection_date, violation_code)) AS distinct_inspection_violation_pairs
 FROM clean_data_table;
+
+-- Expected output (clean data table):
+
+-- tot rows |  distinct_inspections  | distinct_inspection_violation_pairs
+----------------------------------------------------------------------------
+-- 295K     |  87K                   |  295K
 
 
 /* ============================================================

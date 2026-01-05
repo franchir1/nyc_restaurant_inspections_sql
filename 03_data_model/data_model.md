@@ -52,9 +52,7 @@ Purpose:
 **Grain:** one row per geographic area
 
 Attributes:
-- area_code
-- borough
-- neighborhood
+- area_name
 
 Purpose:
 - spatial comparison
@@ -82,7 +80,6 @@ Purpose:
 Attributes:
 - violation_code
 - violation_description
-- critical_flag
 
 Purpose:
 - classification of inspection violations
@@ -94,6 +91,9 @@ Purpose:
 
 ### fact_inspection
 **Grain:** one row per inspection
+
+Attributes:
+- action_taken
 
 Measures:
 - score_assigned
@@ -113,8 +113,8 @@ Analytical Use:
 ### fact_inspection_violation
 **Grain:** one row per violation event per inspection
 
-Measures:
-- violation_count (implicit row count)
+Attributes:
+- critical_flag
 
 Foreign Keys:
 - inspection_key (technical link to fact_inspection)
@@ -145,9 +145,8 @@ Analytical Use:
 ## Design Decisions
 
 - Violations modeled in a separate fact table to avoid score duplication
-- No derived metrics stored in dimensions
+- No derived metrics stored in dimensions (only is_weekend is obtained during table creation from clean_data_table)
 - All metrics computed at query time
-- Area stored directly in both fact tables to simplify BI queries
 
 ---
 

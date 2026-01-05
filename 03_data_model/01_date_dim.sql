@@ -10,8 +10,7 @@ CREATE TABLE date_dim (
     inspection_date DATE UNIQUE,        -- Natural key (actual calendar date)
     inspection_year INT NOT NULL,       -- Year extracted from inspection_date
     inspection_month INT NOT NULL,      -- Month number (1–12)
-    inspection_day INT NOT NULL,        -- Day of month (1–31)
-    is_weekend BOOLEAN NOT NULL         -- Weekend flag (Saturday or Sunday)
+    inspection_day INT NOT NULL        -- Day of month (1–31)
 );
 
 ---------------------------------------------------------------------------------------------------------------------------
@@ -23,8 +22,7 @@ INSERT INTO date_dim (
     inspection_date,
     inspection_year,
     inspection_month,
-    inspection_day,
-    is_weekend
+    inspection_day
 )
 SELECT DISTINCT
     -- Convert date to YYYYMMDD numeric format to generate a compact and sortable surrogate key
@@ -35,13 +33,7 @@ SELECT DISTINCT
     -- Extract calendar components for time-based aggregations
     EXTRACT(YEAR FROM inspection_date)::INT AS inspection_year,
     EXTRACT(MONTH FROM inspection_date)::INT AS inspection_month,
-    EXTRACT(DAY FROM inspection_date)::INT AS inspection_day,
-
-    -- PostgreSQL DOW: 0 = Sunday, 6 = Saturday
-    CASE
-        WHEN EXTRACT(DOW FROM inspection_date) IN (0, 6) THEN TRUE
-        ELSE FALSE
-    END AS is_weekend
+    EXTRACT(DAY FROM inspection_date)::INT AS inspection_day
 
 FROM clean_data_table
 WHERE inspection_date IS NOT NULL;

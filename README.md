@@ -4,7 +4,7 @@ This project analyzes **NYC Department of Health (DOHMH)** restaurant inspection
 
 **Raw data → ETL → Star schema → SQL analysis → Business insights**
 
-The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events.
+The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events. Individual inspections are used as analytical units, but conclusions are drawn exclusively from aggregated and longitudinal patterns.
 
 ---
 
@@ -109,9 +109,9 @@ All measures are stored exclusively in fact tables.
 
 ### Dimensions
 - `date_dim` – calendar attributes and weekend flag
-- `area_dim` – borough and neighborhood
+- `area_dim` – borough
 - `establishment_dim` – restaurant entity
-- `violation_dim` – violation code and critical flag
+- `violation_dim` – violation code
 
 ### Fact tables
 
