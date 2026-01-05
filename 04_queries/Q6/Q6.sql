@@ -1,47 +1,90 @@
+
 /* ============================================================
-   Q6 — Analysis of non-improved establishments
-   ============================================================
+Q6 – Analysis of non-improved establishments
+============================================================
 
-   Definition
-   An establishment is classified as NON-IMPROVED if:
-   - it has at least 2 inspection-days, AND
-   - last inspection-day score >= first inspection-day score
+Objective:
+Analyze establishments that did not improve their inspection
+score over time and identify:
+- the most frequent violation types associated with them
+- their geographic distribution
 
-   Notes
-   - Grain: inspection-day (fact_inspection)
-   - Lower score = better outcome
-   - Single inspection-day establishments are excluded
+Definition:
+An establishment is classified as NON-IMPROVED if:
+- it has at least two inspection-days with a valid score, AND
+- its last inspection score is greater than or equal to
+  its first inspection score.
+
+Grain:
+- One row = one establishment
+
+Notes:
+- Lower score values indicate better inspection outcomes.
+- Only inspections with a valid (non-NULL) score are considered.
+- Establishments with a single inspection-day are excluded.
 */
 
-/* ----------------------------
-   Derive first / last scores
-   ---------------------------- */
 
-WITH establishment_scores AS (
+/* ============================================================
+Step 1 – Select inspections with a valid score
+============================================================
+
+Purpose:
+Exclude inspection-days without an assigned score to avoid
+misclassification caused by NULL values.
+*/
+
+WITH scored_inspections AS (
     SELECT
         establishment_key,
+        inspection_key,
         date_key,
-        score_assigned,
+        score_assigned
+    FROM fact_inspection
+    WHERE score_assigned IS NOT NULL
+),
+
+
+/* ============================================================
+Step 2 – Derive first and last inspection score per establishment
+============================================================
+
+Purpose:
+- Identify the initial and final inspection score
+  for each establishment.
+- Count the number of scored inspection-days to
+  exclude single-observation cases.
+*/
+
+establishment_scores AS (
+    SELECT
+        establishment_key,
 
         FIRST_VALUE(score_assigned) OVER (
             PARTITION BY establishment_key
-            ORDER BY date_key ASC
+            ORDER BY date_key ASC, inspection_key ASC
         ) AS first_score,
 
         FIRST_VALUE(score_assigned) OVER (
             PARTITION BY establishment_key
-            ORDER BY date_key DESC
+            ORDER BY date_key DESC, inspection_key DESC
         ) AS last_score,
 
         COUNT(*) OVER (
             PARTITION BY establishment_key
         ) AS inspection_days
-    FROM fact_inspection
+    FROM scored_inspections
 ),
 
-/* ----------------------------
-   Identify non-improved establishments
-   ---------------------------- */
+
+/* ============================================================
+Step 3 – Identify non-improved establishments
+============================================================
+
+Purpose:
+Select establishments that did not improve their score
+between the first and last inspection.
+*/
 
 non_improved_establishments AS (
     SELECT DISTINCT
@@ -52,10 +95,19 @@ non_improved_establishments AS (
         AND last_score >= first_score
 )
 
+
 /* ============================================================
-   Q6A — Most frequent violation codes
-   among non-improved establishments
-   ============================================================ */
+Q6A – Most frequent violation codes
+      among non-improved establishments
+============================================================
+
+Objective:
+Identify the most common violation types associated with
+establishments that failed to improve over time.
+
+Grain:
+- One row = one violation event
+*/
 
 SELECT
     vd.violation_code,
@@ -75,37 +127,47 @@ ORDER BY
     total_violations DESC
 LIMIT 10;
 
+
 /*
-Results — Q6A (Top 10 Violation Codes)
+Output – Q6A (Top 10 violation codes)
 
-violation_code | total_violations | description (shortened)
-------------------------------------------------------------
-10F | 15329 | Non-food contact surfaces improperly maintained
-08A | 9663  | Conditions conducive to vermin
-06D | 7044  | Food contact surface not sanitized
-10B | 6597  | Plumbing / sewage issues
-02G | 6402  | Cold TCS food held above temperature
-06C | 6079  | Food/equipment exposed to contamination
-04L | 5401  | Evidence of mice
-02B | 5314  | Hot food not held at required temperature
-04N | 4406  | Flies / nuisance pests
-04A | 2748  | Missing Food Protection Certificate
+violation_code | total_violations | violation_description
+---------------|------------------|----------------------
+10F            | 15,530           | Non-food contact surfaces improperly maintained
+08A            | 9,884            | Conditions conducive to vermin / lack of vermin proofing
+06D            | 7,157            | Food contact surfaces not properly sanitized
+10B            | 6,693            | Plumbing / sewage system deficiencies
+02G            | 6,527            | Cold TCS food held above required temperature
+06C            | 6,173            | Food or equipment exposed to contamination
+04L            | 5,538            | Evidence of mice in food or non-food areas
+02B            | 5,441            | Hot food not held at required temperature
+04N            | 4,492            | Flies or nuisance pests present
+04A            | 2,806            | Missing Food Protection Certificate
 
-Insight
-Non-improved establishments are dominated by structural,
-hygiene, temperature control and pest-related violations,
-indicating persistent facility and management issues
-rather than isolated procedural errors.
+Interpretation – Q6A:
+- Non-improved establishments are dominated by recurring
+  structural, hygiene, temperature-control, and pest-related
+  violations.
+- These patterns indicate persistent facility and management
+  issues rather than isolated procedural failures.
 */
 
+
 /* ============================================================
-   Q6B — Geographic distribution
-   of non-improved establishments
-   ============================================================ */
+Q6B – Geographic distribution of non-improved establishments
+============================================================
+
+Objective:
+Assess whether non-improved establishments are concentrated
+in specific areas or follow overall establishment density.
+
+Grain:
+- One row = one area
+*/
 
 SELECT
     ad.area_name,
-    COUNT(DISTINCT nie.establishment_key) AS total_establishments
+    COUNT(DISTINCT nie.establishment_key) AS non_improved_establishments
 FROM non_improved_establishments AS nie
 JOIN fact_inspection AS fi
     ON nie.establishment_key = fi.establishment_key
@@ -114,21 +176,24 @@ JOIN area_dim AS ad
 GROUP BY
     ad.area_name
 ORDER BY
-    total_establishments DESC;
+    non_improved_establishments DESC;
+
 
 /*
-Results — Q6B (Geographic Distribution)
+Output – Q6B (Geographic distribution)
 
 area_name       | non_improved_establishments
---------------------------------------------
-MANHATTAN       | 3767
-BROOKLYN        | 2366
-QUEENS          | 2182
-BRONX           | 811
-STATEN ISLAND   | 341
+----------------|----------------------------
+MANHATTAN       | 3,819
+BROOKLYN        | 2,386
+QUEENS          | 2,211
+BRONX           | 826
+STATEN ISLAND   | 344
 
-Insight
-The distribution closely mirrors overall establishment
-density, suggesting that non-improvement is a systemic
-phenomenon rather than a borough-specific anomaly.
+Interpretation – Q6B:
+- The geographic distribution of non-improved establishments
+  closely mirrors overall establishment density.
+- Non-improvement appears to be a systemic issue rather than
+  a borough-specific anomaly.
 */
+
