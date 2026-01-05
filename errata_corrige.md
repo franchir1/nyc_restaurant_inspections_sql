@@ -381,13 +381,177 @@ Se vuoi, nel prossimo passo possiamo:
 * oppure preparare una **risposta “da colloquio” in 60 secondi** basata su queste note
 
 
-                date_dim
-                   |
-                   |
-area_dim —— fact_inspection —— establishment_dim
-                   |
-                   |
-        fact_inspection_violation
-                   |
-                   |
-             violation_dim
+Perfetto. Facciamo **entrambe le cose**, in modo **riutilizzabile direttamente nei `.md`** e **difendibile in colloquio**.
+Qui sotto trovi **due sezioni pronte**: puoi incollarle tali e quali nel progetto, poi le rifiniamo quando rivedremo i file.
+
+---
+
+# 1️⃣ Data Model — Assumptions & Limitations
+
+## Data Model Overview
+
+The analytical model is built around an **inspection-day grain**, defined as:
+
+> **1 row = 1 establishment × 1 inspection date**
+
+All facts and metrics are interpreted **conditionally on inspection activity**, not on continuous calendar time.
+
+---
+
+## Core Assumptions
+
+### Inspection-Day as the Atomic Unit
+
+* Multiple inspections occurring on the same day for the same establishment are **collapsed into a single inspection-day**.
+* Measures represent the **worst observed condition of the day**.
+
+This choice prioritizes **risk severity** over inspection frequency.
+
+---
+
+### Enforcement-Driven Observations
+
+* The dataset only observes establishments **when inspections occur**.
+* Days without inspections are **not represented**.
+
+As a result, all temporal analyses describe:
+
+> *What happens when inspections take place*,
+> not
+> *what happens continuously over time*.
+
+---
+
+### Static Dimensional Attributes
+
+* Establishment location (area) is treated as **static**.
+* No Slowly Changing Dimension (SCD) logic is applied.
+
+This is acceptable given the low likelihood and limited analytical impact of location changes.
+
+---
+
+## Known Limitations
+
+### Loss of Intra-Day Inspection Sequence
+
+* The order and outcomes of multiple inspections within the same day are not preserved.
+* Immediate follow-ups or same-day corrective actions cannot be analyzed.
+
+---
+
+### Score Aggregation Bias
+
+* Inspection scores are aggregated as the **maximum (worst) score of the day**.
+* This may:
+
+  * penalize early inspection-days
+  * slightly favor measured improvement over time
+
+This behavior is **intentional and acknowledged**.
+
+---
+
+### Uneven Temporal Coverage
+
+* Inspection activity is heavily concentrated on weekdays.
+* Weekend observations are sparse by design.
+
+As a consequence:
+
+* calendar-based percentages (e.g. weekend vs weekday share of violations) are **not meaningful**
+* comparisons are valid **only when normalized by inspection activity**
+
+---
+
+## Analytical Implication
+
+All metrics are interpreted as **conditional probabilities or intensities**, for example:
+
+* violations **per inspection-day**
+* improvement **among establishments with repeated inspections**
+
+Direct comparisons with inspection-event–level datasets are **not valid** without adjustment.
+
+---
+
+# 2️⃣ Interview-Ready Validation Checklist (Senior-Level)
+
+Questa sezione è oro puro in colloquio.
+Se sai rispondere a queste, sei **molto sopra la media**.
+
+---
+
+## 1. What is the grain of your main fact table?
+
+> The fact table is modeled at inspection-day level: one row per establishment per calendar date.
+
+✔ risposta corretta
+❌ “one row per inspection” → **no**
+
+---
+
+## 2. Why didn’t you model individual inspections?
+
+> Because multiple inspections may occur on the same day, and the analysis focuses on risk severity rather than inspection frequency.
+
+---
+
+## 3. Can you compare weekends vs weekdays?
+
+> Only conditionally on inspection activity. Calendar-based comparisons are biased due to uneven inspection scheduling.
+
+---
+
+## 4. Why is the improvement percentage relatively high?
+
+> Improvement is measured only among establishments with at least two inspection-days. Single-inspection establishments are excluded to avoid downward bias.
+
+---
+
+## 5. What happens if an establishment has multiple inspections on the same day?
+
+> They are collapsed into a single inspection-day, and the worst score of the day is retained.
+
+---
+
+## 6. Is the model suitable for real-time risk estimation?
+
+> No. The model reflects enforcement activity, not continuous operational risk.
+
+---
+
+## 7. What would you change for a production-grade system?
+
+> Introduce an inspection-event fact table and track intra-day inspection sequences, while keeping the inspection-day fact for aggregated analytics.
+
+---
+
+## 8. Are your results internally consistent?
+
+> Yes. All analytical queries are aligned with the inspection-day grain and interpreted accordingly.
+
+---
+
+# 3️⃣ Come procediamo con i `.md` (prossimo step)
+
+Ora la strada è chiara.
+Ti propongo questo ordine:
+
+1️⃣ **README principale**
+
+* aggiungiamo una sezione “Data Model & Assumptions”
+
+2️⃣ File `.md` per Q4–Q6
+
+* riscriviamo gli obiettivi in modo coerente col modello
+* rimuoviamo ambiguità temporali
+
+3️⃣ Sezione finale “Key Findings & Methodological Notes”
+
+Quando vuoi, nel prossimo messaggio:
+
+* incollami **un `.md` alla volta**
+* oppure dimmi **da quale iniziamo** (README o Q4)
+
+A questo punto il progetto è **già da colloquio serio**.
