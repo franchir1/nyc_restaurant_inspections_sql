@@ -85,8 +85,7 @@ Where are critical hygiene violation events concentrated?
 | Staten Island | 5,489           | 994            | **5.52**                        |
 
 **Conclusion**  
-Critical violation events scale with inspection and establishment density.  
-After normalization, critical-event rates are very similar across boroughs.
+Critical violation events scale with inspection and establishment density. After normalization, critical-event rates are very similar across boroughs.
 
 ---
 
@@ -105,8 +104,7 @@ How have inspection scores and volumes evolved over time?
 | 2025 | 18.18 | 18.59 | 20.85 | 18.36 | 17.72 |
 
 **Conclusion**  
-Inspection coverage increases sharply from 2022 onward, marking a structural break.  
-Score trends reflect both broader inspection coverage and underlying quality dynamics.
+Inspection coverage increases sharply from 2022 onward, marking a structural break. Score trends reflect both broader inspection coverage and underlying quality dynamics.
 
 ---
 
@@ -135,8 +133,7 @@ Do establishments improve their inspection scores?
 | Improved establishments | 58.63% |
 
 **Conclusion**  
-Most establishments improve over time, but a substantial minority does not.  
-This highlights heterogeneous responses to corrective actions at establishment level.
+Most establishments improve over time, but a substantial minority does not. This highlights heterogeneous responses to corrective actions at establishment level.
 
 ---
 
@@ -168,8 +165,7 @@ This highlights heterogeneous responses to corrective actions at establishment l
 | Staten Island | 994 | 344 | **0.35** |
 
 **Conclusion**  
-Non-improved establishments form a stable minority.  
-Their distribution is geographically balanced, while persistent violations point to structural and management-related issues.
+Non-improved establishments form a stable minority. Their distribution is geographically balanced, while persistent violations point to structural and management-related issues.
 
 ---
 
