@@ -65,7 +65,7 @@ FROM fact_inspection_violation
 GROUP BY inspection_key, violation_key
 HAVING COUNT(*) > 1;
 
--- 0K
+-- 0
 
 -- CHECK 3: Coverage vs clean data (distinct inspection-violation pairs)
 SELECT COUNT(*) AS inspection_violation_clean
@@ -92,7 +92,7 @@ LEFT JOIN violation_dim vd
     ON cd.violation_code = vd.violation_code
 WHERE vd.violation_code IS NULL;
 
--- 0K
+-- 0
 
 -- CHECK 5: Referential integrity (inspections not matched to fact_inspection)
 SELECT COUNT(*) AS missing_inspection_matches
@@ -112,7 +112,7 @@ LEFT JOIN fact_inspection fi
    AND fi.date_key = dd.date_key
 WHERE fi.inspection_key IS NULL;
 
--- 0 K
+-- 0
 
 
 
