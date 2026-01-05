@@ -21,7 +21,6 @@ In particular, the project examines whether:
 - critical hygiene violations show geographic concentration
 - establishments improve over time or persistently underperform
 
-The answers to these questions are derived exclusively from the SQL analyses presented in this repository.
 
 ---
 
