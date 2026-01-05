@@ -99,7 +99,7 @@ aggregated AS (
             first_score,
             last_score
         FROM establishment_first_last
-        WHERE inspection_count >= 2
+        WHERE inspection_count >= 2 -- filters out all those inspected once (no improvement measurable)
     ) t
 )
 
