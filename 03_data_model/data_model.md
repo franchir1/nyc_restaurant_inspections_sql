@@ -20,9 +20,9 @@ It follows a **star schema** optimized for:
 - No snowflaking
 
 <figure style="text-align: center; margin: 1.5rem 0;">
-  <img src="star_scheme_sql.png" alt="Star scheme for the data model" style="max-width: 60%; height: auto;" />
+  <img src="star_scheme_sql.png" alt="Star scheme for the data model" style="max-width: 100%; height: auto;" />
   <figcaption style="margin-top: 0.5rem; font-style: italic;">
-    Star scheme for the data model
+    Data model layout
   </figcaption>
 </figure>
 

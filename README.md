@@ -1,123 +1,233 @@
-English | [Italiano](README.it.md)
+# NYC Health Inspections – End-to-End Data Analysis (SQL & BI)
 
-# NYC Restaurant Inspections – Data Analysis with SQL
+This project analyzes **NYC Department of Health (DOHMH)** restaurant inspection data using a complete analytical pipeline:
 
-This project analyzes the **Department of Health and Mental Hygiene (DOHMH)** dataset related to the results of **health inspections of restaurants and university cafeterias** in New York City.
+**Raw data → ETL → Star schema → SQL analysis → Business insights**
+
+The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events.
+
+---
+
+## Quick insights (executive summary)
+
+Before diving into the queries, the analysis reveals that:
+
+- Health inspections are **proportionally distributed** across NYC areas
+- Average inspection quality shows **moderate but structural differences** between boroughs
+- A **structural expansion of inspection coverage starts in 2022**
+- ~**59% of establishments improve** over time, while a stable minority does not
+- Critical violations are **geographically balanced once normalized**
+- Persistent problems are mainly **structural and operational**, not location-driven
+
+These insights are demonstrated and validated through the SQL analyses described below.
+
+---
+
+## Analytical goals
+
+The project answers the following questions:
+
+- Do inspection outcomes differ structurally across NYC areas?
+- Are inspections distributed proportionally to the number of establishments?
+- How do inspection scores and volumes evolve over time?
+- Where are critical hygiene violations concentrated?
+- Do establishments improve, or do problems persist over time?
+
+The approach is **KPI-driven**, normalized, and designed for **decision support**.
+
+---
 
 ## Dataset
 
-The dataset includes information on:
+Source: NYC DOHMH Restaurant Inspection Results  
 
-* health inspections
-* assigned scores
-* detected violations, including critical violations
-* geographic area (borough)
-* cuisine type
-* inspection date
+Original grain: **inspection × violation**
 
-The original granularity is **inspection–violation**, with potential duplication of the score for a single inspection. This aspect requires explicit analytical modeling.
+Key challenges of the raw dataset:
+- duplication of inspection scores across violations
+- mixed analytical grains
+- uneven historical coverage
 
-The raw dataset requires a cleaning and transformation process before it can be used in an analytical model.
+These issues are resolved through explicit ETL and dimensional modeling.
 
-## Project objective
+---
 
-The objective is to answer, in a structured and reproducible way, key questions about NYC’s health inspection system:
+## ETL pipeline
 
-* What is the **average level of hygienic and sanitary quality** across different areas of the city?
-* Are inspections **distributed proportionally** across boroughs and types of establishments?
-* How do **scores and inspections evolve over time**, and are there structural discontinuities?
-* How **widespread is critical health risk**, and how does it vary over time?
-* Do corrective actions lead to **measurable long-term improvements**, or do issues tend to recur?
+The ETL process is documented in detail in `etl.md`.
 
-The adopted approach is **KPI-driven** and oriented toward **decision support**.
+### Architecture
 
-## Data cleaning and transformation
+Raw CSV  
+→ **Power Query** (cleaning & normalization)  
+→ PostgreSQL staging tables  
+→ **SQL transformations**  
+→ Dimensional star schema
 
-The data preparation phase includes:
+### Power Query responsibilities
+- column renaming and standardization
+- data type enforcement
+- removal of invalid business keys
+- deduplication
+- basic normalization  
+- **no aggregations**
 
-* preliminary cleaning via **Power Query**
-* loading into **PostgreSQL**
-* creation of the `clean_data_table`
-* removal of records not suitable for analysis
+### SQL responsibilities
+- surrogate key generation
+- grain enforcement
+- referential integrity checks
+- fact table construction
 
-This phase ensures **consistency and reliability** of the data used in subsequent SQL analyses.
+ETL strategy: **full refresh**
+
+---
 
 ## Data model
 
-The model uses a **star schema**, composed of:
+The analytical layer is built on a **pure star schema**, designed to ensure:
 
-* a **fact table** containing the inspection score
-* dimensional tables for:
+- correct metric aggregation
+- explicit grain control
+- BI-friendly joins
+- interview-level explainability
 
-  * geographic context
-  * temporal context
-  * cuisine type
-  * restaurant
-  * violation
+Dimensions contain **no metrics** and use surrogate keys.  
+All measures are stored exclusively in fact tables.
 
-<p align="center">
-  <img src="03_data_model/star_scheme_sql.png" alt="Star schema of the data model" width="600"><br>
-  <em>Star schema of the data model</em>
-</p>
+### Star schema layout
 
-Relationships are:
+<figure style="text-align: center; margin: 2rem 0;">
+  <img 
+    src="03_data_model/star_scheme_sql.png" 
+    alt="Star schema data model layout" 
+    style="max-width: 70%; height: auto;"
+  />
+  <figcaption style="margin-top: 0.5rem; font-style: italic;">
+    Data model layout
+  </figcaption>
+</figure>
 
-* one-to-many
-* single-direction
+### Dimensions
+- `date_dim` – calendar attributes and weekend flag
+- `area_dim` – borough and neighborhood
+- `establishment_dim` – restaurant entity
+- `violation_dim` – violation code and critical flag
 
-## SQL analysis
+### Fact tables
 
-SQL analyses are organized by **business questions** and include:
+#### `fact_inspection`
+**Grain:** one row per inspection  
+**Measure:** `score_assigned`
 
-* aggregation of average scores by area and cuisine type
-* time-based analyses using **window functions**
-* comparison between first and last inspections of establishments
-* identification of improvement or deterioration patterns
-* analysis of the frequency and persistence of critical violations
+Used for:
+- average inspection scores
+- inspection volumes
+- temporal trends
+- establishment improvement analysis
 
-## Methodological choices
+#### `fact_inspection_violation`
+**Grain:** one row per violation per inspection
 
-* an inspection score is treated as **unitary**, even when multiple violations are present
-* analyses prioritize **structural trends and comparisons**, not isolated events
-* temporal trends are presented as the result of year-over-year fluctuations
+Used for:
+- critical violation frequency
+- violation persistence
+- geographic distribution of violations
 
-These choices aim to ensure **semantic consistency** and interpretability of the results.
+Violations are modeled separately to **avoid score duplication**.
 
-## Key findings
+---
 
-* The inspection system appears **structurally balanced** across NYC areas
-* The **2019–2020** period represents a significant discontinuity in the data
-* Only about **22%** of establishments show a clear improvement over time
-* **77–78%** maintain or worsen their level
-* The most recurring violations are:
+## SQL analysis overview
 
-  * structural
-  * hygienic-operational
-  * difficult to permanently resolve
+Analyses are organized by **business question** and implemented in PostgreSQL.
 
-## Tools used
+### Q1 – Data quality and proportionality
+- average inspection score by area
+- inspections per establishment
 
-* **Database administration:** pgAdmin 4
-* **Query language:** PostgreSQL (CTEs, window functions, advanced aggregations)
-* **Data visualization:** Python (`pandas`, `matplotlib`)
-* **Preliminary data cleaning:** Excel Power Query
-* **IDE:** Visual Studio Code
-* **Version control and documentation:** Git / GitHub
+**Insight:**  
+Inspection coverage is proportional across areas; quality differences are moderate and structural.
+
+---
+
+### Q2 – Critical violation events
+- critical violations per establishment by area
+
+**Insight:**  
+After normalization, critical-event rates are very similar across boroughs.
+
+---
+
+### Q3 – Temporal evolution
+- yearly inspection score trends (post-filtered)
+
+**Insight:**  
+A clear structural break appears from **2022 onward**, driven by expanded inspection coverage rather than short-term shocks.
+
+---
+
+### Q4 – Inspection scheduling
+- weekday vs weekend inspections
+
+**Insight:**  
+~97% of inspections occur on weekdays, indicating a highly standardized inspection process.
+
+---
+
+### Q5 – Establishment improvement over time
+- comparison between first and last inspection
+
+**Insight:**  
+Approximately **59% of establishments improve**, while a substantial minority does not.
+
+---
+
+### Q6 – Persistent non-improvement
+- most frequent violations
+- geographic distribution of non-improving establishments
+
+**Insight:**  
+Non-improving establishments are evenly distributed across areas; recurring violations are mainly structural and operational.
+
+---
+
+## Methodological principles
+
+- inspection scores are treated as **unitary per inspection**
+- comparisons rely on **normalized metrics**
+- no metrics stored in dimensions
+- fact tables are **aggregated before joining**
+- early years with sparse coverage are interpreted cautiously
+
+These choices ensure semantic correctness and analytical robustness.
+
+---
+
+## Tools & technologies
+
+- **Database:** PostgreSQL
+- **SQL:** CTEs, window functions, advanced aggregations
+- **ETL:** Excel Power Query
+- **Visualization:** Python (`pandas`, `matplotlib`)
+- **IDE:** Visual Studio Code
+- **Version control:** Git / GitHub
+
+---
 
 ## Skills demonstrated
 
-* data modeling with star schema
-* use of surrogate keys
-* multiple JOINs
-* complex CTEs
-* window functions (`FIRST_VALUE`)
-* time series analysis
-* business-oriented interpretation of results
-* structured technical documentation
+- dimensional modeling (star schema)
+- grain control and metric correctness
+- surrogate keys and referential integrity
+- complex analytical SQL
+- KPI-oriented analysis
+- end-to-end data pipeline documentation
 
-## Technical documentation
+---
 
-* [Data loading and transformation](/02_etl/etl.md)
-* [Model overview](/03_data_model/data_model.md)
-* [SQL analysis](/04_queries/queries.md)
-* [Original dataset](https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data)
+## Documentation
+
+- ETL process → `etl.md`
+- Data model → `data_model.md`
+- SQL queries → `Q1.sql` … `Q6.sql`
+- Results → `queries_results.md`
