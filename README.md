@@ -4,51 +4,53 @@ This project analyzes **NYC Department of Health (DOHMH)** restaurant inspection
 
 **Raw data → ETL → Star schema → SQL analysis → Business insights**
 
-The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events. Individual inspections are used as analytical units, but conclusions are drawn exclusively from aggregated and longitudinal patterns.
+The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events.  
+Individual inspections are used as analytical units, but conclusions are drawn exclusively from **aggregated and longitudinal patterns**.
 
 ---
 
-## Quick insights (executive summary)
+## Project overview
 
-Before diving into the queries, the analysis reveals that:
+This analysis investigates whether the NYC health inspection system behaves in a **structurally balanced and proportionate** way across geography, time, and establishments.
 
-- Health inspections are **proportionally distributed** across NYC areas
-- Average inspection quality shows **moderate but structural differences** between boroughs
-- A **structural expansion of inspection coverage starts in 2022**
-- ~**59% of establishments improve** over time, while a stable minority does not
-- Critical violations are **geographically balanced once normalized**
-- Persistent problems are mainly **structural and operational**, not location-driven
+In particular, the project examines whether:
 
-These insights are demonstrated and validated through the SQL analyses described below.
+- inspection coverage is proportional across NYC areas
+- inspection outcomes differ structurally between boroughs
+- inspection volume and outcomes evolve over time
+- critical hygiene violations show geographic concentration
+- establishments improve over time or persistently underperform
+
+The answers to these questions are derived exclusively from the SQL analyses presented in this repository.
 
 ---
 
 ## Analytical goals
 
-The project answers the following questions:
+The project is designed to support **decision-oriented analysis** and addresses the following questions:
 
 - Do inspection outcomes differ structurally across NYC areas?
 - Are inspections distributed proportionally to the number of establishments?
 - How do inspection scores and volumes evolve over time?
-- Where are critical hygiene violations concentrated?
+- Where are critical hygiene violation events concentrated?
 - Do establishments improve, or do problems persist over time?
 
-The approach is **KPI-driven**, normalized, and designed for **decision support**.
+The approach is **KPI-driven**, normalized, and explicitly grounded in grain-aware analysis.
 
 ---
 
 ## Dataset
 
-Source: NYC DOHMH Restaurant Inspection Results  
+**Source:** NYC DOHMH Restaurant Inspection Results  
 
-Original grain: **inspection × violation**
+**Original grain:** inspection × violation
 
 Key challenges of the raw dataset:
 - duplication of inspection scores across violations
 - mixed analytical grains
 - uneven historical coverage
 
-These issues are resolved through explicit ETL and dimensional modeling.
+These issues are resolved through explicit ETL design and dimensional modeling.
 
 ---
 
@@ -70,7 +72,7 @@ Raw CSV
 - removal of invalid business keys
 - deduplication
 - basic normalization  
-- **no aggregations**
+- **no aggregations or derived analytical features**
 
 ### SQL responsibilities
 - surrogate key generation
@@ -78,7 +80,7 @@ Raw CSV
 - referential integrity checks
 - fact table construction
 
-ETL strategy: **full refresh**
+**ETL strategy:** full refresh
 
 ---
 
@@ -91,27 +93,14 @@ The analytical layer is built on a **pure star schema**, designed to ensure:
 - BI-friendly joins
 - interview-level explainability
 
-Dimensions contain **no metrics** and use surrogate keys.  
+**Dimensions contain no metrics or derived analytical features.**  
 All measures are stored exclusively in fact tables.
 
-### Star schema layout
-
-<figure style="text-align: center; margin: 2rem 0;">
-  <img 
-    src="03_data_model/star_scheme_sql.png" 
-    alt="Star schema data model layout" 
-    style="max-width: 70%; height: auto;"
-  />
-  <figcaption style="margin-top: 0.5rem; font-style: italic;">
-    Data model layout
-  </figcaption>
-</figure>
-
 ### Dimensions
-- `date_dim` – calendar attributes and weekend flag
-- `area_dim` – borough
+- `date_dim` – calendar attributes
+- `area_dim` – geographic area (borough)
 - `establishment_dim` – restaurant entity
-- `violation_dim` – violation code
+- `violation_dim` – violation code and description
 
 ### Fact tables
 
@@ -123,71 +112,17 @@ Used for:
 - average inspection scores
 - inspection volumes
 - temporal trends
-- establishment improvement analysis
+- establishment-level improvement analysis
 
 #### `fact_inspection_violation`
-**Grain:** one row per violation per inspection
+**Grain:** one row per violation event per inspection
 
 Used for:
 - critical violation frequency
 - violation persistence
 - geographic distribution of violations
 
-Violations are modeled separately to **avoid score duplication**.
-
----
-
-## SQL analysis overview
-
-Analyses are organized by **business question** and implemented in PostgreSQL.
-
-### Q1 – Data quality and proportionality
-- average inspection score by area
-- inspections per establishment
-
-**Insight:**  
-Inspection coverage is proportional across areas; quality differences are moderate and structural.
-
----
-
-### Q2 – Critical violation events
-- critical violations per establishment by area
-
-**Insight:**  
-After normalization, critical-event rates are very similar across boroughs.
-
----
-
-### Q3 – Temporal evolution
-- yearly inspection score trends (post-filtered)
-
-**Insight:**  
-A clear structural break appears from **2022 onward**, driven by expanded inspection coverage rather than short-term shocks.
-
----
-
-### Q4 – Inspection scheduling
-- weekday vs weekend inspections
-
-**Insight:**  
-~97% of inspections occur on weekdays, indicating a highly standardized inspection process.
-
----
-
-### Q5 – Establishment improvement over time
-- comparison between first and last inspection
-
-**Insight:**  
-Approximately **59% of establishments improve**, while a substantial minority does not.
-
----
-
-### Q6 – Persistent non-improvement
-- most frequent violations
-- geographic distribution of non-improving establishments
-
-**Insight:**  
-Non-improving establishments are evenly distributed across areas; recurring violations are mainly structural and operational.
+Violations are modeled separately to **avoid inspection score duplication**.
 
 ---
 
@@ -195,7 +130,8 @@ Non-improving establishments are evenly distributed across areas; recurring viol
 
 - inspection scores are treated as **unitary per inspection**
 - comparisons rely on **normalized metrics**
-- no metrics stored in dimensions
+- no metrics or derived features are stored in dimensions
+- derived analytical features (e.g. weekday vs weekend) are computed **at query time**
 - fact tables are **aggregated before joining**
 - early years with sparse coverage are interpreted cautiously
 
@@ -221,7 +157,7 @@ These choices ensure semantic correctness and analytical robustness.
 - surrogate keys and referential integrity
 - complex analytical SQL
 - KPI-oriented analysis
-- end-to-end data pipeline documentation
+- end-to-end data pipeline design and documentation
 
 ---
 

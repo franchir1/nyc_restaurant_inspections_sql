@@ -5,7 +5,7 @@ Q4 – Distribution of inspections: weekdays vs weekends
 WITH inspections_by_day_type AS (
     SELECT
         CASE
-            WHEN EXTRACT(DOW FROM dd.full_date) IN (0, 6)
+            WHEN EXTRACT(DOW FROM dd.inspection_date) IN (0, 6)
                 THEN 'weekend'
             ELSE 'weekday'
         END AS day_type,

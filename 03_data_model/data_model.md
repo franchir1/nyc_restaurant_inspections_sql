@@ -39,8 +39,6 @@ Attributes:
 - month
 - month_name
 - day
-- day_of_week
-- is_weekend
 
 Purpose:
 - time-based aggregation
@@ -145,7 +143,7 @@ Analytical Use:
 ## Design Decisions
 
 - Violations modeled in a separate fact table to avoid score duplication
-- No derived metrics stored in dimensions (only is_weekend is obtained during table creation from clean_data_table)
+- No derived metrics stored in dimensions
 - All metrics computed at query time
 
 ---
