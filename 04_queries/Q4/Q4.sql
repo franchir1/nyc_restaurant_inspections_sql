@@ -1,62 +1,90 @@
 /* ============================================================
-   Q4 — Hygiene violations per inspection-day:
-        weekends vs weekdays
-   ============================================================
+Q4 – Distribution of inspections: weekdays vs weekends
+============================================================
 
-   Objective
-   Compare the average number of hygiene violations per inspection
-   between weekends and weekdays.
+Objective:
+Determine whether health inspections are predominantly
+conducted on weekdays or during weekends.
 
-   Rationale
-   - The inspection fact table is modeled at:
-       1 row = 1 establishment × 1 inspection date
-   - Inspection activity is not evenly distributed across the week
-   - Therefore, normalization is performed
+Correct analytical question:
+- This analysis focuses on WHEN inspections are performed,
+  not on hygiene outcomes or violation severity.
 
-   Metric
-   - Average violations per inspection-day
+Grain:
+- One row = one inspection
+
+Metric:
+- Number of inspections by day type
+- Percentage of inspections by day type
+
+Interpretation guide:
+- Weekend days account for 2 out of 7 calendar days (~28.6%).
+- A much lower percentage indicates weekday-oriented scheduling.
 */
 
-/* ----------------------------
-   Violations per inspection
-   ---------------------------- */
 
-WITH inspection_violations AS (
+/* ============================================================
+Step 1 – Count inspections by day type
+============================================================ */
+
+WITH inspections_by_day_type AS (
     SELECT
-        fi.inspection_key,
         dd.is_weekend,
-        COUNT(fiv.violation_key) AS violations_per_inspection
-    FROM fact_inspection AS fi
-    JOIN date_dim AS dd
-        ON fi.date_key = dd.date_key
-    LEFT JOIN fact_inspection_violation AS fiv
-        ON fi.inspection_key = fiv.inspection_key
+        COUNT(*) AS inspection_count
+    FROM fact_inspection fi
+    JOIN date_dim dd
+        ON dd.date_key = fi.date_key
     GROUP BY
-        fi.inspection_key,
         dd.is_weekend
+),
+
+/* ============================================================
+Step 2 – Compute total inspections
+============================================================ */
+
+total_inspections AS (
+    SELECT
+        SUM(inspection_count) AS total_count
+    FROM inspections_by_day_type
 )
 
-/* ----------------------------
-   Weekend vs weekday comparison
-   ---------------------------- */
+/* ============================================================
+Step 3 – Calculate percentage
+============================================================ */
 
 SELECT
-    is_weekend,
-    COUNT(*) AS inspections,
-    ROUND(AVG(violations_per_inspection), 2) AS avg_violations_per_inspection
-FROM inspection_violations
-GROUP BY
-    is_weekend
+    i.is_weekend,
+    i.inspection_count,
+    ROUND(
+        (i.inspection_count * 100.0) / t.total_count,
+        2
+    ) AS inspection_percentage
+FROM inspections_by_day_type i,
+     total_inspections t
 ORDER BY
-    is_weekend;
+    i.is_weekend;
 
 /*
-Expected interpretation:
+Output – Q4 (Inspections by day type)
 
-- Weekdays show a higher average number of violations per inspection
-- Weekends have:
-    • far fewer inspections
-    • slightly fewer violations per inspection
-- The difference is driven by inspection scheduling,
-  not by increased weekend hygiene compliance
+is_weekend | inspection_count | inspection_percentage
+-----------|------------------|----------------------
+0          | 81,603           | 96.78%
+1          | 2,714            | 3.22%
+
+Interpretation:
+- The vast majority of inspections are conducted on weekdays.
+- Weekend inspections account for only 3.22% of the total,
+  well below the calendar proportion of weekend days (~28.6%).
+- This indicates a strongly weekday-oriented inspection system.
+*/
+
+/*
+Final notes:
+- This query uses only basic SQL constructs:
+  SELECT, JOIN, GROUP BY, and simple arithmetic.
+- No advanced SQL features (window functions or CROSS JOIN)
+  are required to understand or maintain it.
+- The result cleanly answers the scheduling question:
+  whether inspections are concentrated on weekdays or weekends.
 */
