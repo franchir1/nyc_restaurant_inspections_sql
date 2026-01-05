@@ -13,12 +13,14 @@
 DROP TABLE IF EXISTS fact_inspection_violation CASCADE;
 
 CREATE TABLE fact_inspection_violation (
-    inspection_violation_key SERIAL PRIMARY KEY,
-    inspection_key INT NOT NULL REFERENCES fact_inspection(inspection_key),
-    violation_key INT NOT NULL REFERENCES violation_dim(violation_key),
-    critical_flag VARCHAR(15) NOT NULL
-);
+    inspection_key INT NOT NULL
+        REFERENCES fact_inspection(inspection_key),
+    violation_key INT NOT NULL
+        REFERENCES violation_dim(violation_key),
+    critical_flag VARCHAR(15),          -- Severity assigned during this specific inspection
 
+    PRIMARY KEY (inspection_key, violation_key)
+);
 
 ---------------------------------------------------------------------------------------------------------------------------
 -- DATA LOADING
@@ -112,7 +114,4 @@ LEFT JOIN fact_inspection fi
    AND fi.date_key = dd.date_key
 WHERE fi.inspection_key IS NULL;
 
--- 0 K
-
-
-
+-- 0K
