@@ -21,7 +21,6 @@ In particular, the project examines whether:
 - critical hygiene violations show geographic concentration
 - establishments improve over time or persistently underperform
 
-
 ---
 
 ## Analytical goals
@@ -71,7 +70,7 @@ Raw CSV
 - removal of invalid business keys
 - deduplication
 - basic normalization  
-- **no aggregations or derived analytical features**
+- **no aggregations or analytical feature engineering**
 
 ### SQL responsibilities
 - surrogate key generation
@@ -94,6 +93,24 @@ The analytical layer is built on a **pure star schema**, designed to ensure:
 
 **Dimensions contain no metrics or derived analytical features.**  
 All measures are stored exclusively in fact tables.
+
+### Star schema layout
+
+<figure style="text-align: center; margin: 1.5rem 0;">
+  <img src="star_schema_sql.png" alt="Star schema data model layout" style="max-width: 70%; height: auto;" />
+  <figcaption style="margin-top: 0.5rem; font-style: italic;">
+    Star schema used for analytical modeling
+  </figcaption>
+</figure>
+
+### How to read the schema
+
+- `fact_inspection` is the **central fact table**, one row per inspection
+- Dimensions describe **when**, **where**, and **which establishment**
+- `fact_inspection_violation` stores **violation events linked to inspections**
+- Violations are separated to **avoid inspection score duplication**
+
+Detailed modeling choices and grain definitions are documented in `data_model.md`.
 
 ### Dimensions
 - `date_dim` – calendar attributes
@@ -162,7 +179,7 @@ These choices ensure semantic correctness and analytical robustness.
 
 ## Documentation
 
-- ETL process → `etl.md`
 - Data model → `data_model.md`
+- ETL process → `etl.md`
 - SQL queries → `Q1.sql` … `Q6.sql`
 - Results → `queries_results.md`

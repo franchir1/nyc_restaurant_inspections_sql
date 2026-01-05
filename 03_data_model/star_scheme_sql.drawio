@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="wnWMF1_s2CQAOAtVTrNh-41" parent="1" style="swimlane;html=1;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;swimlaneFillColor=#ffffff;rounded=0;shadow=0;comic=0;labelBackgroundColor=none;strokeWidth=1;fontFamily=Verdana;fontSize=12;whiteSpace=wrap;fillColor=#EEEEEE;strokeColor=#FFFFFF;fontColor=#1A1A1A;" value="date_dim" vertex="1">
-          <mxGeometry height="182" width="160" x="594" y="160" as="geometry" />
+          <mxGeometry height="160" width="160" x="594" y="160" as="geometry" />
         </mxCell>
         <mxCell id="wnWMF1_s2CQAOAtVTrNh-42" parent="wnWMF1_s2CQAOAtVTrNh-41" style="text;html=1;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;labelBackgroundColor=none;imageHeight=24;imageWidth=24;fillColor=#EEEEEE;strokeColor=#FFFFFF;fontColor=#1A1A1A;" value="- date_key" vertex="1">
           <mxGeometry height="26" width="160" y="26" as="geometry" />
@@ -21,9 +21,6 @@
         </mxCell>
         <mxCell id="wnWMF1_s2CQAOAtVTrNh-46" parent="wnWMF1_s2CQAOAtVTrNh-41" style="text;html=1;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;labelBackgroundColor=none;imageHeight=24;imageWidth=24;fillColor=#EEEEEE;strokeColor=#FFFFFF;fontColor=#1A1A1A;" value="- inspection_day" vertex="1">
           <mxGeometry height="26" width="160" y="130" as="geometry" />
-        </mxCell>
-        <mxCell id="wnWMF1_s2CQAOAtVTrNh-47" parent="wnWMF1_s2CQAOAtVTrNh-41" style="text;html=1;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;whiteSpace=wrap;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;labelBackgroundColor=none;imageHeight=24;imageWidth=24;fillColor=#EEEEEE;strokeColor=#FFFFFF;fontColor=#1A1A1A;" value="- is_weekend" vertex="1">
-          <mxGeometry height="26" width="160" y="156" as="geometry" />
         </mxCell>
         <mxCell id="wnWMF1_s2CQAOAtVTrNh-48" parent="1" style="swimlane;html=1;fontStyle=1;align=center;verticalAlign=middle;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;swimlaneFillColor=#ffffff;rounded=0;shadow=0;comic=0;labelBackgroundColor=none;strokeWidth=1;fontFamily=Verdana;fontSize=12;whiteSpace=wrap;fillColor=#EEEEEE;strokeColor=#FFFFFF;fontColor=#1A1A1A;" value="fact_inspections" vertex="1">
           <mxGeometry height="182" width="220" x="285" y="210" as="geometry" />
@@ -141,7 +138,7 @@
         </mxCell>
         <mxCell id="j2M9NywJ6vEPZhd71bhu-20" connectable="0" parent="j2M9NywJ6vEPZhd71bhu-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=light-dark(#000000,#000000);fontColor=light-dark(#FFFFFF, #ffffff);textShadow=0;labelBackgroundColor=light-dark(#FFFFFF,#000000);labelBorderColor=light-dark(#000000,#000000);" value="*" vertex="1">
           <mxGeometry relative="1" x="0.3723" y="2" as="geometry">
-            <mxPoint x="1" y="-7" as="offset" />
+            <mxPoint x="-1" y="-12" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="j2M9NywJ6vEPZhd71bhu-21" connectable="0" parent="j2M9NywJ6vEPZhd71bhu-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=light-dark(#000000,#000000);fontColor=light-dark(#FFFFFF, #ffffff);textShadow=0;labelBackgroundColor=light-dark(#FFFFFF,#000000);labelBorderColor=light-dark(#000000,#000000);" value="1" vertex="1">
@@ -154,7 +151,7 @@
         </mxCell>
         <mxCell id="j2M9NywJ6vEPZhd71bhu-16" connectable="0" parent="j2M9NywJ6vEPZhd71bhu-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=light-dark(#000000,#000000);fontColor=light-dark(#FFFFFF, #ffffff);textShadow=0;labelBackgroundColor=light-dark(#FFFFFF,#000000);labelBorderColor=light-dark(#000000,#000000);" value="*" vertex="1">
           <mxGeometry relative="1" x="0.9469" y="-3" as="geometry">
-            <mxPoint x="2" y="-14" as="offset" />
+            <mxPoint x="2" y="-19" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="j2M9NywJ6vEPZhd71bhu-23" connectable="0" parent="j2M9NywJ6vEPZhd71bhu-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=light-dark(#000000,#FFFFFF);fontColor=light-dark(#000000,#FCFCFC);labelBackgroundColor=light-dark(#FFFFFF,#000000);labelBorderColor=none;" value="1" vertex="1">
