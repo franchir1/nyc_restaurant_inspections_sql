@@ -21,9 +21,6 @@ Notes
 Table definition
 ---------------------------- */
 
-SELECT *
-FROM clean_data_table
-
 DROP TABLE IF EXISTS clean_data_table;
 
 CREATE TABLE clean_data_table (
