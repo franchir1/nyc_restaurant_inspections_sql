@@ -252,3 +252,5 @@ and not in a dimension table.
 - Fully aligned with the physical DDL
 - Easy to explain and defend in technical interviews
 - Easily extensible with additional dimensions or facts
+
+*Back to the [README](README.md)*

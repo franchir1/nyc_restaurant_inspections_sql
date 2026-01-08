@@ -183,10 +183,6 @@ However, a consistent minority fails to improve, driven primarily by persistent 
 
 ## Queries and SQL reference
 
-The analyses above are based on the following SQL files:
-- `Q1.sql`
-- `Q2.sql`
-- `Q3.sql`
-- `Q4.sql`
-- `Q5.sql`
-- `Q6.sql`
+The analyses above are based on the following [SQL folder](/04_queries/).
+
+*Back to the [README](README.md)*

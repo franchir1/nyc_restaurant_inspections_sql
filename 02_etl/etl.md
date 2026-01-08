@@ -191,3 +191,5 @@ This ETL pipeline:
 - guarantees metric correctness
 - produces a BI-ready star schema
 - remains fully aligned with documented modeling assumptions
+
+*Back to the [README](README.md)*
