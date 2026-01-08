@@ -48,8 +48,10 @@ Power Query acts as the **Extract & Load (EL)** layer, while SQL is responsible 
 
 ## Star Schema Overview
 
+<div style="text-align: center; margin: 1.5rem 0;">
+  <img src="star_schema_sql.png" alt="" style="max-width: 100%; height: auto;">
+</div>
 
-::contentReference[oaicite:0]{index=0}
 
 
 The model follows a classic star schema design with a dependent bridge fact table
