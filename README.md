@@ -200,9 +200,28 @@ These principles ensure **semantic correctness and analytical robustness**.
 
 ---
 
-## Documentation
+## Further Documentation & Deep Dives
 
-* Data model → `data_model.md`
-* ETL process → `etl.md`
-* SQL queries → `Q1.sql` … `Q6.sql`
-* Results → `queries_results.md`
+Additional documentation and source code structure:
+
+- **Raw source data (CSV)**  
+  [`01_raw_data/`](01_raw_data/)
+
+- **ETL process documentation**  
+  [`02_etl/etl.md`](02_etl/etl.md)
+
+- **Dimensional data model documentation**  
+  [`03_data_model/data_model.md`](03_data_model/data_model.md)
+
+- **Data model SQL definitions (dimensions & facts)**  
+  [`03_data_model/`](03_data_model/)
+
+- **Analytical SQL queries**  
+  [`04_queries/`](04_queries/)
+
+- **Query results and interpretations**  
+  [`04_queries/queries_results.md`](04_queries/queries_results.md)
+
+For the visual exploration of the same dataset, see the
+**Power BI companion project**:  
+[`nyc_restaurant_inspections_powerbi`](../nyc_restaurant_inspections_powerbi)
