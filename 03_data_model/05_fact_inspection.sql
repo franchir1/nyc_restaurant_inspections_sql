@@ -1,23 +1,28 @@
 ---------------------------------------------------------------------------------------------------------------------------
 -- FACT TABLE: fact_inspection
 ---------------------------------------------------------------------------------------------------------------------------
--- Granularity:
--- 1 row = 1 inspection event
--- An inspection is approximated as (establishment_key, date_key)
+-- Grain:
+-- 1 row = 1 restaurant-day with at least one inspection
+--
+-- Methodological note:
+-- The source dataset does not provide a reliable inspection-level identifier.
+-- Inspections are therefore approximated at restaurant-day level.
+-- Multiple inspections occurring on the same day for the same establishment
+-- are deterministically collapsed into a single record.
 ---------------------------------------------------------------------------------------------------------------------------
 
 DROP TABLE IF EXISTS fact_inspection CASCADE;
 
 CREATE TABLE fact_inspection (
-    inspection_key SERIAL PRIMARY KEY,             -- Surrogate inspection identifier
+    inspection_key SERIAL PRIMARY KEY,             -- Surrogate key for restaurant-day inspection
     establishment_key INT NOT NULL
         REFERENCES establishment_dim(establishment_key),
     area_key INT NOT NULL
         REFERENCES area_dim(area_key),
     date_key INT NOT NULL
         REFERENCES date_dim(date_key),
-    score_assigned INT,                             -- Inspection score (one per inspection)
-    action_taken VARCHAR(150)                       -- Action taken during inspection
+    score_assigned INT,                             -- Worst score observed for the restaurant-day
+    action_taken VARCHAR(150)                       -- Canonical action taken (deterministically selected)
 );
 
 ---------------------------------------------------------------------------------------------------------------------------
@@ -34,12 +39,13 @@ INSERT INTO fact_inspection (
 SELECT
     ed.establishment_key,
 
-    -- Area is an establishment-level attribute, collapsed deterministically
+    -- Area is an establishment-level attribute.
+    -- In case of inconsistencies in the source, the value is collapsed deterministically.
     MIN(ad.area_key) AS area_key,
 
     dd.date_key,
 
-    -- Worst score of the day retained for inspection-level analysis
+    -- Worst score of the day retained (conservative assumption)
     MAX(cdt.score_assigned) AS score_assigned,
 
     -- Canonical action selected deterministically
@@ -58,7 +64,6 @@ WHERE cdt.inspection_date IS NOT NULL
 GROUP BY
     ed.establishment_key,
     dd.date_key;
-
 
 ---------------------------------------------------------------------------------------------------------------------------
 -- VALIDATION CHECKS
@@ -171,7 +176,7 @@ SELECT
     ) AS pct_restaurant_days_with_multiple_actions
 FROM daily_restaurant;
 
--- 0.886
+-- 0.886 
 
 -- SAMPLE VIEW
 SELECT *
