@@ -241,3 +241,14 @@ and not in a dimension table.
 - The original ordering or timing of violations within an inspection
   is not preserved
 - The model is optimized for analytical accuracy, not for operational auditing
+
+---
+
+## Model Strengths
+
+- Clear and explicit grain definition at all levels
+- Star schema structure with controlled complexity
+- No double counting when facts are queried correctly
+- Fully aligned with the physical DDL
+- Easy to explain and defend in technical interviews
+- Easily extensible with additional dimensions or facts

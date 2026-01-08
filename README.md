@@ -4,8 +4,8 @@ This project analyzes **NYC Department of Health (DOHMH)** restaurant inspection
 
 **Raw data → ETL → Star schema → SQL analysis → Business insights**
 
-The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection events.  
-Individual inspections are used as analytical units, but conclusions are drawn exclusively from **aggregated and longitudinal patterns**.
+The focus is on **system-level behavior and long-term dynamics**, not on isolated inspection records.
+Individual inspections are used as analytical units, but conclusions are drawn exclusively from **aggregated, normalized, and longitudinal patterns**.
 
 ---
 
@@ -15,68 +15,73 @@ This analysis investigates whether the NYC health inspection system behaves in a
 
 In particular, the project examines whether:
 
-- inspection coverage is proportional across NYC areas
-- inspection outcomes differ structurally between boroughs
-- inspection volume and outcomes evolve over time
-- critical hygiene violations show geographic concentration
-- establishments improve over time or persistently underperform
+* inspection coverage is proportional across NYC areas
+* inspection outcomes differ structurally between boroughs
+* inspection volume and outcomes evolve over time
+* critical hygiene violations show geographic concentration
+* establishments improve over time or persistently underperform
+
+The goal is not descriptive reporting, but **analytical interpretation of systemic behavior**.
 
 ---
 
 ## Analytical goals
 
-The project is designed to support **decision-oriented analysis** and addresses the following questions:
+The project is designed to support **decision-oriented analysis** and addresses questions such as:
 
-- Do inspection outcomes differ structurally across NYC areas?
-- Are inspections distributed proportionally to the number of establishments?
-- How do inspection scores and volumes evolve over time?
-- Where are critical hygiene violation events concentrated?
-- Do establishments improve, or do problems persist over time?
+* Do inspection outcomes differ structurally across NYC areas?
+* Are inspections distributed proportionally to the number of establishments?
+* How do inspection scores and volumes evolve over time?
+* Where are critical hygiene violations concentrated?
+* Do establishments improve, or do problems persist over time?
 
-The approach is **KPI-driven**, normalized, and explicitly grounded in grain-aware analysis.
+The approach is **KPI-driven**, explicitly **grain-aware**, and grounded in dimensional modeling best practices.
 
 ---
 
 ## Dataset
 
-**Source:** NYC DOHMH Restaurant Inspection Results  
+**Source:** NYC DOHMH – Restaurant Inspection Results
 
 **Original grain:** inspection × violation
 
 Key challenges of the raw dataset:
-- duplication of inspection scores across violations
-- mixed analytical grains
-- uneven historical coverage
 
-These issues are resolved through explicit ETL design and dimensional modeling.
+* inspection scores duplicated across violations
+* mixed analytical grains
+* lack of a reliable inspection identifier
+* uneven historical coverage
+
+These issues are resolved through explicit ETL design and dimensional modeling choices.
 
 ---
 
 ## ETL pipeline
 
-The ETL process is documented in detail in `etl.md`.
+The full ETL process is documented in detail in `etl.md`.
 
 ### Architecture
 
-Raw CSV  
-→ **Power Query** (cleaning & normalization)  
-→ PostgreSQL staging tables  
-→ **SQL transformations**  
+Raw CSV
+→ **Power Query** (cleaning & normalization)
+→ PostgreSQL staging table (`clean_data_table`)
+→ **SQL transformations**
 → Dimensional star schema
 
 ### Power Query responsibilities
-- column renaming and standardization
-- data type enforcement
-- removal of invalid business keys
-- deduplication
-- basic normalization  
-- **no aggregations or analytical feature engineering**
+
+* column renaming and standardization
+* data type enforcement
+* normalization of textual attributes
+* handling of invalid or placeholder values
+* **no aggregations or analytical feature engineering**
 
 ### SQL responsibilities
-- surrogate key generation
-- grain enforcement
-- referential integrity checks
-- fact table construction
+
+* surrogate key generation
+* grain enforcement
+* referential integrity checks
+* dimension and fact table construction
 
 **ETL strategy:** full refresh
 
@@ -84,102 +89,120 @@ Raw CSV
 
 ## Data model
 
-The analytical layer is built on a **pure star schema**, designed to ensure:
+The analytical layer is built on a **star schema–based design**, optimized to ensure:
 
-- correct metric aggregation
-- explicit grain control
-- BI-friendly joins
-- interview-level explainability
+* correct metric aggregation
+* explicit grain control
+* BI-friendly joins
+* clear explainability in technical reviews and interviews
 
-**Dimensions contain no metrics or derived analytical features.**  
+Dimensions contain **no metrics or derived analytical features**.
 All measures are stored exclusively in fact tables.
 
-### Star schema layout
+---
 
-<figure style="text-align: center; margin: 1.5rem 0;">
-  <img src="star_schema_sql.png" alt="Star schema data model layout" style="max-width: 70%; height: auto;" />
-  <figcaption style="margin-top: 0.5rem; font-style: italic;">
-    Star schema used for analytical modeling
-  </figcaption>
-</figure>
+## Star schema
+
+<img src="star_schema_sql.png" alt="" style="display:block; margin: 1.5rem auto; max-width:100%; height: auto;">
 
 ### How to read the schema
 
-- `fact_inspection` is the **central fact table**, one row per inspection
-- Dimensions describe **when**, **where**, and **which establishment**
-- `fact_inspection_violation` stores **violation events linked to inspections**
-- Violations are separated to **avoid inspection score duplication**
+* `fact_inspection` is the **central fact table**
+* One row represents **one restaurant-day with at least one inspection**
+* Dimensions describe **when**, **where**, and **which establishment**
+* `fact_inspection_violation` is a **dependent bridge fact**
+* Violations are separated to **avoid inspection score duplication**
 
 Detailed modeling choices and grain definitions are documented in `data_model.md`.
 
-### Dimensions
-- `date_dim` – calendar attributes
-- `area_dim` – geographic area (borough)
-- `establishment_dim` – restaurant entity
-- `violation_dim` – violation code and description
+---
 
-### Fact tables
+## Dimensions
 
-#### `fact_inspection`
-**Grain:** one row per inspection  
+* `date_dim` – calendar attributes
+* `area_dim` – geographic area (borough)
+* `establishment_dim` – restaurant entity
+* `violation_dim` – violation code and description
+
+All dimensions use surrogate keys and contain no analytical metrics.
+
+---
+
+## Fact tables
+
+### `fact_inspection`
+
+**Grain:** one row per restaurant-day with at least one inspection
 **Measure:** `score_assigned`
 
 Used for:
-- average inspection scores
-- inspection volumes
-- temporal trends
-- establishment-level improvement analysis
 
-#### `fact_inspection_violation`
-**Grain:** one row per violation event per inspection
+* average inspection scores
+* inspection volumes
+* temporal trends
+* establishment-level improvement analysis
+
+---
+
+### `fact_inspection_violation`
+
+**Grain:** one row per (inspection, violation type)
 
 Used for:
-- critical violation frequency
-- violation persistence
-- geographic distribution of violations
 
-Violations are modeled separately to **avoid inspection score duplication**.
+* critical violation frequency
+* violation persistence
+* geographic distribution of violations
+
+Violations are modeled separately to:
+
+* avoid inspection score duplication
+* support stable aggregation
+* preserve inspection-level measures
+
+This table must be queried **through `fact_inspection`**, not as a standalone star.
 
 ---
 
 ## Methodological principles
 
-- inspection scores are treated as **unitary per inspection**
-- comparisons rely on **normalized metrics**
-- no metrics or derived features are stored in dimensions
-- derived analytical features (e.g. weekday vs weekend) are computed **at query time**
-- fact tables are **aggregated before joining**
-- early years with sparse coverage are interpreted cautiously
+* inspections are approximated at **restaurant-day level**
+* inspection scores are treated as **unitary per inspection**
+* comparisons rely on **normalized metrics**
+* no metrics or derived features are stored in dimensions
+* derived analytical features are computed **at query time**
+* fact tables are **aggregated before joining**
+* early years with sparse coverage are interpreted cautiously
 
-These choices ensure semantic correctness and analytical robustness.
+These principles ensure **semantic correctness and analytical robustness**.
 
 ---
 
 ## Tools & technologies
 
-- **Database:** PostgreSQL
-- **SQL:** CTEs, window functions, advanced aggregations
-- **ETL:** Excel Power Query
-- **Visualization:** Python (`pandas`, `matplotlib`)
-- **IDE:** Visual Studio Code
-- **Version control:** Git / GitHub
+* **Database:** PostgreSQL
+* **SQL:** CTEs, window functions, advanced aggregations
+* **ETL:** Power Query
+* **Visualization:** Python (`pandas`, `matplotlib`)
+* **IDE:** Visual Studio Code
+* **Version control:** Git / GitHub
 
 ---
 
 ## Skills demonstrated
 
-- dimensional modeling (star schema)
-- grain control and metric correctness
-- surrogate keys and referential integrity
-- complex analytical SQL
-- KPI-oriented analysis
-- end-to-end data pipeline design and documentation
+* dimensional modeling (star schema)
+* grain control and metric correctness
+* surrogate keys and referential integrity
+* complex analytical SQL
+* KPI-oriented analysis
+* end-to-end data pipeline design and documentation
 
 ---
 
 ## Documentation
 
-- Data model → `data_model.md`
-- ETL process → `etl.md`
-- SQL queries → `Q1.sql` … `Q6.sql`
-- Results → `queries_results.md`
+* Data model → `data_model.md`
+* ETL process → `etl.md`
+* SQL queries → `Q1.sql` … `Q6.sql`
+* Results → `queries_results.md`
