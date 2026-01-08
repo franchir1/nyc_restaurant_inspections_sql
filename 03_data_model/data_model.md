@@ -253,4 +253,4 @@ and not in a dimension table.
 - Easy to explain and defend in technical interviews
 - Easily extensible with additional dimensions or facts
 
-*Back to the [README](README.md)*
+*Back to the [README](/README.md)*

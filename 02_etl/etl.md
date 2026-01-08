@@ -192,4 +192,4 @@ This ETL pipeline:
 - produces a BI-ready star schema
 - remains fully aligned with documented modeling assumptions
 
-*Back to the [README](README.md)*
+*Back to the [README](/README.md)*
