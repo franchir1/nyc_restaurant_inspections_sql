@@ -48,9 +48,12 @@ Power Query acts as the **Extract & Load (EL)** layer, while SQL is responsible 
 
 ## Star Schema Overview
 
-<div style="text-align: center; margin: 1.5rem 0;">
-  <img src="star_schema_sql.png" alt="" style="max-width: 100%; height: auto;">
-</div>
+<figure style="text-align: center; margin: 1.5rem 0;">
+  <img src="star_schema_sql.png" alt="Star schema for the data model" style="max-width: 100%; height: auto;" />
+  <figcaption style="margin-top: 0.5rem; font-style: italic;">
+    Data model layout
+  </figcaption>
+</figure>
 
 
 

@@ -33,7 +33,7 @@ many-to-many relationships in a controlled and explicit way.
 <figure style="text-align: center; margin: 1.5rem 0;">
   <img src="star_schema_sql.png" alt="Star schema for the data model" style="max-width: 100%; height: auto;" />
   <figcaption style="margin-top: 0.5rem; font-style: italic;">
-    Star schema layout of the analytical data model
+    Data model layout
   </figcaption>
 </figure>
 

@@ -103,7 +103,12 @@ All measures are stored exclusively in fact tables.
 
 ## Star schema
 
-<img src="star_schema_sql.png" alt="" style="display:block; margin: 1.5rem auto; max-width:100%; height: auto;">
+<figure style="text-align: center; margin: 1.5rem 0;">
+  <img src="star_schema_sql.png" alt="Star schema for the data model" style="max-width: 100%; height: auto;" />
+  <figcaption style="margin-top: 0.5rem; font-style: italic;">
+    Data model layout
+  </figcaption>
+</figure>
 
 ### How to read the schema
 
