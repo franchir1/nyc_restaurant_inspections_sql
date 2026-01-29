@@ -8,13 +8,6 @@
    and semantic reliability of the staging dataset prior to
    dimensional modeling.
 
-   Intent
-   - Verify assumptions about grain and optional fields
-   - Expose data limitations relevant to downstream design
-
-   Constraints
-   - Read-only checks
-   - No data mutation or remediation performed
    ============================================================ */
 
 
@@ -25,6 +18,8 @@
 SELECT
     COUNT(*) AS total_rows
 FROM staging.clean_dohmh_inspections;
+
+-- 300K rows
 
 /* ------------------------------------------------------------
    CHECK 2 — Inspection multiplicity
@@ -56,7 +51,6 @@ SELECT
 FROM staging.clean_dohmh_inspections
 WHERE inspection_date IS NULL;
 
-
 /* ------------------------------------------------------------
    CHECK 4 — Missing inspection scores
    Inspection score is not mandatory in the source data
@@ -77,29 +71,43 @@ WHERE score_assigned IS NULL;
    - Validate collapsing inspections to restaurant-day grain
    - Support aggregation of violations via a bridge fact
 ------------------------------------------------------------ */
+
 SELECT
+    SUM(inspections_same_day)
+FROM
+
+(SELECT
     camis_code,
     inspection_date,
-    action_taken,
-    score_assigned,
-    COUNT(*) AS row_count
+    COUNT(DISTINCT action_taken) AS inspections_same_day
 FROM staging.clean_dohmh_inspections
+WHERE inspection_date IS NOT NULL
+  AND camis_code IS NOT NULL
 GROUP BY
     camis_code,
-    inspection_date,
-    action_taken,
-    score_assigned
-HAVING COUNT(*) > 1
-ORDER BY row_count DESC
-LIMIT
-    10;
+    inspection_date
+HAVING COUNT(DISTINCT action_taken) > 1)
+
+-- 1.5K duplicate records of inspections (action taken) for the same day, same restaurant
+
+SELECT
+    COUNT(DISTINCT (camis_code, inspection_date, action_taken, score_assigned))
+        AS total_inspections_by_action_proxy
+FROM staging.clean_dohmh_inspections
+WHERE
+    camis_code IS NOT NULL
+    AND inspection_date IS NOT NULL
+    AND action_taken IS NOT NULL
+    AND score_assigned IS NOT NULL;
+
+-- 84K rows (total distinct inspections)
+
+
+-- this proxy definition has 84 K rows, 750 of which are duplicates (0.9%), otherwise the inspection is not identifiable as event
 
 
 /* ------------------------------------------------------------
-   CHECK 6 — Critical flag variability
-   Shows that critical_flag is not stable at the
-   inspection-proxy level and therefore unsuitable
-   for inclusion in fact_inspection
+   CHECK 6 — Critical flag variability for the inspection proxy level
 ------------------------------------------------------------ */
 SELECT
     camis_code,
@@ -118,3 +126,5 @@ HAVING COUNT(DISTINCT critical_flag) > 1
 ORDER BY distinct_critical_flags DESC
 LIMIT
     10;
+
+-- This means that critical_flag is violation-level-depending, not inspection-level

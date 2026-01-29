@@ -2,15 +2,6 @@
    STAGING — DOHMH NYC Restaurant Inspections
    ============================================================
 
-   Scope
-   Staging layer holding cleaned, denormalized records at
-   inspection–violation level, generated upstream by
-   the Power Query ETL.
-
-   This table is the closest analytical representation
-   of the original source after basic standardization
-   and type normalization.
-
    Grain
    - 1 row = 1 violation recorded during an inspection
    - The same inspection can appear on multiple rows
@@ -20,13 +11,6 @@
    - The source dataset does NOT expose a stable inspection_id
    - Inspection-level uniqueness must be reconstructed downstream
 
-   Design Notes
-   - This layer is NOT a fact table
-   - Denormalization is intentional
-   - It is the authoritative source for:
-       • dimension table population
-       • fact table derivation
-       • downstream data quality checks
    ============================================================ */
 
 /*================================================
@@ -88,7 +72,6 @@ WITH (
 SELECT *
 FROM staging.raw_dohmh_inspections
 LIMIT 10;
-
 
 /* ============================================================
    CLEAN STAGING TABLE
