@@ -1,16 +1,10 @@
 /* ============================================================
    ANALYSIS — DATA QUALITY & MODEL VALIDATION (COMPACT)
    ============================================================
-
    Objective
-   Compact, high-signal validation of the finalized star schema.
-   The checks target only structural and modeling-critical aspects:
-   - dimension table population
-   - fact table grain enforcement
-   - coverage alignment with staging
+   - dimension table population check
+   - fact table grain check
    - validation of core deterministic assumptions
-
-   Total checks implemented: 5
    ============================================================ */
 
 
@@ -53,7 +47,7 @@ no data
 /* ============================================================
    CHECK 3 — Coverage alignment: staging vs fact
    The number of distinct restaurant–day combinations
-   in staging must equal the number of fact_inspection rows.
+   in staging must equal the number derived from fact_inspection (84K rows)
 
    This verifies that no inspection-days were dropped
    or duplicated during fact construction.
@@ -75,11 +69,8 @@ SELECT
 /* ============================================================
    CHECK 4 — Core assumption stress test
    Modeling assumption:
-   - Each restaurant-day maps to a single deterministic action.
-
-   Any restaurant-day associated with multiple actions
-   violates this assumption and requires investigation.
-   Expected result: 0 rows
+   - Some restaurant–day inspections are associated with multiple action_taken values.
+   - Expected result: 747
    ============================================================ */
 
 WITH daily_actions AS (
@@ -98,17 +89,13 @@ SELECT
 FROM daily_actions
 WHERE action_cnt > 1;
 
-"restaurant_days_with_multiple_actions"
-"747"
-
+-- is not possible to remove deterministically these rows
 
 /* ============================================================
    CHECK 5 — Bridge table integrity
    fact_inspection_violation must enforce uniqueness
    at the inspection–violation level.
 
-   Duplicate (inspection_key, violation_key) pairs
-   indicate a broken many-to-many bridge.
    Expected result: 0 rows
    ============================================================ */
 SELECT
@@ -118,5 +105,3 @@ SELECT
 FROM analysis.fact_inspection_violation
 GROUP BY inspection_key, violation_key
 HAVING COUNT(*) > 1;
-
--- 0

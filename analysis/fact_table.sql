@@ -1,7 +1,6 @@
 /* ============================================================
    ANALYSIS — FACT TABLES
    ============================================================
-
    Scope
    Construction of fact tables derived from staging data
    and conformed dimensions.
@@ -12,7 +11,6 @@
    - Deterministic aggregation rules are applied to resolve
      multiple records per restaurant per day
    ============================================================ */
-
 
 /* ============================================================
    FACT TABLE: fact_inspection
@@ -34,7 +32,7 @@ CREATE TABLE analysis.fact_inspection (
     date_key INT NOT NULL
         REFERENCES analysis.date_dim(date_key),
 
-    score_assigned INT,          -- Worst score observed on that date
+    score_assigned INT,          -- Worst score observed on that date (MAX)
     action_taken VARCHAR(150)   -- Deterministically selected inspection action
 );
 
@@ -48,7 +46,7 @@ INSERT INTO analysis.fact_inspection (
 )
 SELECT
     ed.establishment_key,
-    MIN(ad.area_key)            AS area_key,
+    ad.area_key            AS area_key,
     dd.date_key,
     MAX(cdt.score_assigned)     AS score_assigned,
     MAX(cdt.action_taken)       AS action_taken

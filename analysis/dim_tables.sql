@@ -9,7 +9,6 @@
    Design Rules
    - All dimensions are sourced exclusively from staging data
    - Surrogate keys are generated at this layer
-   - No business logic beyond deterministic shaping
    ============================================================ */
 
 
@@ -49,7 +48,7 @@ SELECT
     (EXTRACT(ISODOW FROM d) IN (6,7))   AS is_weekend
 FROM generate_series(
     (SELECT MIN(inspection_date)
-     FROM staging.clean_dohmh_inspections
+     FROM staging.clean_dohmh_inspections -- generate calendar from MAX and MIN of the clean_dohmh_inspections staging table
      WHERE inspection_date IS NOT NULL),
     (SELECT MAX(inspection_date)
      FROM staging.clean_dohmh_inspections
