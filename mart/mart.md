@@ -213,3 +213,8 @@ Best-performing cuisines tend to be operationally simpler and more standardized.
 
 * No predictive or causal metrics are provided
 * Impact metrics rely on proxy relationships
+
+## Conclusions
+The MART layer consolidates the project’s analytical intent into a small set of stable, defensible KPIs derived from an explicitly constrained data model.
+
+Taken together, the KPIs show that inspection outcomes differ structurally across areas, that risk is driven primarily by upper-tail behavior rather than central tendencies, and that enforcement actions respond non-linearly to severity. Critical violations emerge early and broadly, while closures occur only beyond clear score thresholds.
