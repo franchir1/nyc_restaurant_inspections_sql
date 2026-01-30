@@ -146,9 +146,11 @@ WHERE fi.score_assigned IS NOT NULL
 GROUP BY
     ic.has_critical_violation;
 
-/* ============================================================
-   KPI 6 — Closure rate by inspection score bucket
-   ============================================================ */
+/* ================================================================
+   KPI 6 — Closure rate and critical rate by inspection score bucket
+   =============================================================== */
+
+-- KPI 6A (closure rate by score bucket)
 
 CREATE OR REPLACE VIEW mart.closure_rate_by_score_bucket AS
 SELECT
@@ -170,6 +172,37 @@ FROM analysis.fact_inspection AS fi
 WHERE fi.score_assigned IS NOT NULL
 GROUP BY score_bucket;
 
+-- KPI 6B (critical rate by score bucket)
+
+CREATE OR REPLACE VIEW mart.critical_violation_rate_by_score_bucket AS
+
+WITH inspection_critical_flag AS (
+
+    SELECT
+        fv.inspection_key,
+        BOOL_OR(fv.critical_flag = 'CRITICAL') AS has_critical
+    FROM analysis.fact_inspection_violation AS fv
+    GROUP BY fv.inspection_key
+)
+
+SELECT
+    CASE
+        WHEN fi.score_assigned < 10 THEN '00–09'
+        WHEN fi.score_assigned BETWEEN 10 AND 19 THEN '10–19'
+        WHEN fi.score_assigned BETWEEN 20 AND 27 THEN '20–27'
+        ELSE '28+'
+    END AS score_bucket,
+    COUNT(*) AS total_inspections,
+    COUNT(*) FILTER (WHERE ic.has_critical) AS critical_inspections,
+    ROUND(
+        COUNT(*) FILTER (WHERE ic.has_critical)::numeric
+        / COUNT(*) * 100, 2) AS critical_inspections_rate_pct
+FROM
+    analysis.fact_inspection AS fi
+JOIN
+    inspection_critical_flag AS ic ON fi.inspection_key = ic.inspection_key
+GROUP BY
+    score_bucket;
 
 /* ============================================================
    KPI 7 — Cuisine ranking by inspection score

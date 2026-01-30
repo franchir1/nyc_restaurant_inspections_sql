@@ -75,7 +75,7 @@ ORDER BY has_critical_violation DESC;
 
 
 /* ============================================================
-   V6 — Closure rate by inspection score bucket
+   V6 — Closure rate/critical rate by inspection score bucket
    ============================================================ */
 
 SELECT
@@ -84,6 +84,14 @@ SELECT
     closed_inspections,
     closure_rate_pct
 FROM mart.closure_rate_by_score_bucket
+ORDER BY score_bucket;
+
+SELECT
+    score_bucket,
+    total_inspections,
+    critical_inspections,
+    critical_inspections_rate_pct
+FROM mart.critical_violation_rate_by_score_bucket
 ORDER BY score_bucket;
 
 
