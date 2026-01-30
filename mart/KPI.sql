@@ -3,23 +3,18 @@
    ============================================================
 
    Scope
-   Defines the curated KPI layer exposed by the MART schema.
-   Each KPI is implemented as a reusable, read-only SQL view.
+   Defines the KPI layer. Each KPI is implemented as a reusable, read-only SQL view.
 
    Design rules
    - One view = one KPI
    - No presentation logic (ORDER BY, LIMIT)
    - No BI-specific assumptions
-   - All logic derived from analysis layer facts
-
-   Notes
-   - These views represent the analytical contract
    - Consumption is handled downstream (KPI_visuals.sql)
    ============================================================ */
 
 
 /* ============================================================
-   KPI 1 — Average inspection score by area
+   KPI 1 — Average score distribution by area
    ============================================================ */
 
 CREATE OR REPLACE VIEW mart.avg_inspection_score_by_area AS
@@ -109,10 +104,10 @@ rolling_scores AS (
         year,
         ROUND(avg_score, 2) AS avg_score,
         ROUND(
-            AVG(avg_score) OVER (
-                PARTITION BY area_name
+            AVG(avg_score) OVER ( -- window
+                PARTITION BY area_name -- the average is calculated for each area
                 ORDER BY year
-                ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                ROWS BETWEEN 2 PRECEDING AND CURRENT ROW -- for each year and area, it calculates the 3 years rolling average (between the 2 preceding years and the current one) 
             ),
             2
         ) AS avg_score_3y_rolling
@@ -137,21 +132,19 @@ WITH inspection_critical_flag AS (
         fv.inspection_key,
         BOOL_OR(fv.critical_flag = 'CRITICAL') AS has_critical_violation
     FROM analysis.fact_inspection_violation AS fv
-    GROUP BY fv.inspection_key
+    GROUP BY
+        fv.inspection_key
 )
 SELECT
-    CASE
-        WHEN ic.has_critical_violation THEN 'Yes'
-        ELSE 'No'
-    END AS has_critical_violation,
+    ic.has_critical_violation,
     COUNT(*) AS inspection_count,
     ROUND(AVG(fi.score_assigned), 2) AS avg_score
 FROM analysis.fact_inspection AS fi
 JOIN inspection_critical_flag AS ic
     ON ic.inspection_key = fi.inspection_key
 WHERE fi.score_assigned IS NOT NULL
-GROUP BY ic.has_critical_violation;
-
+GROUP BY
+    ic.has_critical_violation;
 
 /* ============================================================
    KPI 6 — Closure rate by inspection score bucket

@@ -57,7 +57,7 @@ JOIN analysis.area_dim AS ad
     ON cdt.area_name = ad.area_name
 JOIN analysis.date_dim AS dd
     ON cdt.inspection_date = dd.inspection_date
-WHERE cdt.inspection_date IS NOT NULL
+WHERE cdt.inspection_date IS NOT NULL -- filtering out inspections without date
 GROUP BY
     ed.establishment_key,
     dd.date_key;
